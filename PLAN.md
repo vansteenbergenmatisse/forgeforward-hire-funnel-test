@@ -1,6 +1,41 @@
 # PLAN: Forge Hire
 
-Status: waiting for "go". No app code exists yet.
+Status (2026-10-21): Phase 1 foundation is built. The complete FRONT-END for the funnel and the dashboard is built and verified against mock data. The backend (API routes, database wiring, R2 uploads, webhooks, cron, messaging providers) is NOT built yet and is blocked on keys. See "Progress" below.
+
+## Progress
+
+| Phase | Scope | Status |
+|---|---|---|
+| 1 Foundation | Scaffold, brand tokens, Drizzle schema + first migration, R2 helper, admin key gate, seed, /api/health | Code done. Migration, seed, health and DB/R2 integration tests NOT run: need `DATABASE_URL`, `TEST_DATABASE_URL`, R2 keys |
+| 2 Applicant funnel | A01 to A16 UI, real camera/recorder/upload logic, mock API | Front-end done and verified. Server routes NOT built. Railway deploy NOT done |
+| 3 Dashboard | Projects home, board + drag/drop, Did not finish, Table + CSV, drawer + video player, send modal, all 7 settings tabs | Front-end done and verified against an in-memory store. Cal.com webhook and server persistence NOT built |
+| 4 Safety nets | Backups, integrity check, restore script, retention cron, banners | Test console UI (simulated) and retention/banner UI done. Cron jobs, restore script NOT built |
+| 5 Messaging | Resend, WhatsApp Cloud API, GHL | Send modal, templates and link mode done (front-end). Provider integrations NOT built |
+
+### Front-end verification (2026-10-21)
+- `tsc --noEmit`, `pnpm lint`, `pnpm build`: clean.
+- Vitest: 57 files, 241 tests passed, 3 skipped (the DB/R2 integration tests, which need keys).
+- Playwright (run by the workers): funnel core 16/16 (8 specs at 390x844 and 1280x800), video flow 4 specs passed on Chrome fake media devices. Re-run: `pnpm exec playwright test` with a dev server (see CLAUDE.md).
+- Dashboard interactions were clicked through in the browser by the lead and the workers. There are NO Playwright specs for the dashboard yet.
+- Not verified: real iPhone Safari, real Android Chrome, Facebook and Instagram in-app browsers (see MANUAL_CHECKS.md).
+
+### What is mock today
+- The funnel talks to `FunnelApi` in `src/features/applicant-funnel/api/`. `mock-api.ts` is the default. `http-api.ts` already calls the spec routes and is selected with `NEXT_PUBLIC_FUNNEL_API=http`. The server routes do not exist yet.
+- The dashboard stores (applicants, projects, settings) are in-memory with `localStorage` persistence. They are NOT synced with each other or with the funnel. Replace with API data in the backend phase.
+- Test console runs a simulation behind `TestRunner`, `TestMessenger`, `TestDataStore` interfaces (`src/features/test-console/`).
+- Send modal defaults to link mode (`NEXT_PUBLIC_SEND_MODE=api` switches the label only; no provider is wired).
+
+### Known deviations from the spec and prototype
+- Task body is stored as Tiptap HTML (`taskBody` string), not Tiptap JSON. The funnel renders it through a sanitizer (`applicant-funnel/lib/safe-html.ts`). The DB column `task_content` is jsonb and can hold either; decide when wiring the backend.
+- Warm Ivory is `#FCFBF8` (from the prototype header). Red Deep `#B8302A` and Red Tint `#FCEFED` were added. The earlier guess `#E7E3DC` is now the border/line color.
+- Next.js 16: `middleware` is renamed `proxy` (`src/proxy.ts`). `cacheComponents` and `partialPrefetching` from the scaffold are OFF (they conflict with `force-dynamic` on /api/health and nothing needs them).
+- Funnel unknown slug returns HTTP 200 with "This page does not exist." (not 404). A closed project shows the closed screen after a short skeleton, unless the visitor has a saved session (spec G12).
+- "Applicants this week" on Projects home counts everyone including Did not finish (25), prototype shows 18.
+- Linking an unmatched booking to an applicant only updates the projects store. `ApplicantActions` has no `linkBooking`; add it with the backend.
+- Time zone select is a custom searchable combobox. Phone country picker is a native select.
+- Board card answer line wraps instead of truncating, so some cards are slightly taller than the prototype.
+- Dev-only routes: `/dev/video-flow` (used by the video Playwright specs, returns 404 in production).
+- A saved settings slug change moves its own localStorage key but is not propagated to the other stores.
 
 ## 1. Applicant journey
 
@@ -90,11 +125,11 @@ src/
 ```
 
 ## 6. Decisions already made
-Colors from the HTML (Red #D93A31, Charcoal #0E1220, Ivory #E7E3DC). Dashboard and funnel both match the HTML. Railway project and Postgres exist. Domain apply.forgeforward.io. Tests use a separate test DB and `test/` R2 prefix. Phases run without pauses.
+Colors from the HTML (Signal Red #D93A31, Red Deep #B8302A, Red Tint #FCEFED, Deep Charcoal #0E1220, Warm Ivory #FCFBF8). Dashboard and funnel both match the HTML. Railway project and Postgres exist. Domain apply.forgeforward.io. Tests use a separate test DB and `test/` R2 prefix. Git identity for this repo: `vansteenbergenmatisse` / vansteenbergenmatisse@gmail.com. GitHub repo: https://github.com/vansteenbergenmatisse/forgeforward-hire-funnel-test. Brand logo is taken from the prototype and lives in `src/components/brand/logo.tsx`.
 
 ## 7. Open questions (default in brackets)
-1. Ivory exact hex? [#E7E3DC from the HTML; confirm]
-2. Logo files in /public/brand/? [placeholder wordmark in Barlow Condensed until provided]
+1. Ivory exact hex? RESOLVED: #FCFBF8 (prototype header comment).
+2. Logo files in /public/brand/? RESOLVED for now: logo extracted from the prototype into a React component. Drop official files in /public/brand/ if they differ.
 3. Test database URL (second Railway DB)? [I ask for TEST_DATABASE_URL in Phase 1]
 4. Cal.com API header for signature? [check current Cal.com docs: `x-cal-signature-256`]
 5. Rate limit storage without Redis? [Postgres table, no Redis]

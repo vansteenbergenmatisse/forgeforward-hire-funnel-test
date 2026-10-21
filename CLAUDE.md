@@ -1,17 +1,45 @@
 # Forge Hire
 
-Hiring funnel (/a/[slug]) and private applicant dashboard (/admin) for Forge Forward. First project: Appointment Setter. Spec: FUNNEL_SPEC.md (source of truth). Plan: PLAN.md.
+Hiring funnel (/a/[slug]) and private applicant dashboard (/admin) for Forge Forward. First project: Appointment Setter. Spec: FUNNEL_SPEC.md (source of truth). Plan and progress: PLAN.md. Device checks a bot cannot do: MANUAL_CHECKS.md.
+
+## Status (2026-10-21)
+- Done: foundation code, full front-end for the funnel (A01 to A16) and the dashboard (D01 to D15) against mock data.
+- Not done: server API routes, DB wiring, R2 uploads, Cal.com/WhatsApp webhooks, cron jobs, Resend/WhatsApp/GHL, Railway deploy. Blocked on keys in `.env.local` (see `.env.example`).
+- Details, deviations and what is mock: PLAN.md.
 
 ## Stack (decided)
-- Next.js App Router + strict TypeScript, pnpm, ESLint, Tailwind. Deployed on Railway (web, Postgres, cron).
-- Postgres + Drizzle. Cloudflare R2 for video. Resend (email), WhatsApp Cloud API, GoHighLevel v2 (SMS), Cal.com webhooks.
-- Layout: `src/{app,features,components,platform,shared}`. Features expose one `index` entrypoint.
+- Next.js 16 App Router + strict TypeScript, pnpm, ESLint, Tailwind v4. Read `AGENTS.md` and `node_modules/next/dist/docs/` before using Next APIs (`middleware` is now `proxy`, page props are `PageProps<"/x/[slug]">`, params are Promises).
+- Postgres + Drizzle. Cloudflare R2 for video. Resend (email), WhatsApp Cloud API, GoHighLevel v2 (SMS), Cal.com webhooks. Railway for web, Postgres and cron.
+- `cacheComponents` is OFF on purpose (conflicts with `force-dynamic` on /api/health).
+
+## Layout
+`src/{app,features,components,platform,shared}`. Features expose one `index.ts`; import only through it.
+- `features/applicant-funnel`: funnel UI, state, `FunnelApi` (mock + http), video flow in `video/`.
+- `features/applicants`: applicant view model, mock data, in-memory store, pure rules (retention, filters, CSV, local time).
+- `features/pipeline`: board, Did not finish, Table. `features/applicant-review`: drawer + player. `features/messaging`: template fill + send modal.
+- `features/project-admin`: Projects home, projects store. `features/project-settings`: 7 settings tabs. `features/test-console`: simulated test console.
+- `features/projects`: types, defaults, fixtures. Its `index` is client-safe; server-only code is in `projects/server.ts`.
+- `features/admin-access`, `features/bookings`: admin key gate, Cal.com link builder.
+- `components/{brand,ui,forms,layout,funnel}`: shared UI. `platform/{db,r2}`: server only, never import from client components.
+
+## Commands
+- `pnpm dev` (set `ADMIN_KEY` to a 48+ char string; visit `/admin/k/<key>` once per browser for the admin cookie).
+- `pnpm exec tsc --noEmit --incremental false`, `pnpm lint`, `pnpm test` (vitest), `pnpm build`.
+- Playwright: start a dev server, then `pnpm exec playwright test` (funnel, baseURL `E2E_BASE_URL` or http://localhost:3101) and `pnpm exec playwright test -c playwright.video.config.ts` (video flow, http://localhost:3104). Chromium runs with fake camera and mic flags.
+- Parallel dev servers need separate build dirs: `NEXT_DIST_DIR=.next-x pnpm exec next dev -p <port>`. Run `pnpm exec next typegen` if route types look stale.
+- DB: `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:seed`.
+
+## Front-end switches (dev)
+- Funnel: `?step=A01..A16` review screens (non-production), `?sim=server-error|slow|fail-upload`, `?video=stub`. `NEXT_PUBLIC_FUNNEL_API=http` uses the real routes.
+- Dashboard: `?tab=board|dnf|table`, `?a=<applicantId>` opens the drawer, `&play=1` starts playback, `&send=whatsapp|sms|email` opens the send panel. Settings: `?tab=general|questions|video|task|stages|messages|thankyou`.
+- Reset mock data: clear `forge-hire*` keys in localStorage.
+- `design-reference/` (gitignored) holds the prototype and per-screen digests.
 
 ## Rules
-- Do not write app code until the user replies "go" after PLAN.md.
 - Copy: short sentences, plain words, no em dashes.
-- Brand: Signal Red #D93A31, Deep Charcoal #0E1220, Warm Ivory #E7E3DC. Barlow Condensed headings, Inter body (next/font). Tap targets 48 px min.
-- Design reference: ~/Downloads/forge-hire-page-7.html. Rebuild as clean components, never copy inline styles.
+- Brand: Signal Red #D93A31, Red Deep #B8302A, Red Tint #FCEFED, Deep Charcoal #0E1220, Warm Ivory #FCFBF8. Barlow Condensed headings, Inter body (next/font). Tap targets 48 px min. Tokens live in `src/app/globals.css`; no hex values or inline styles in components.
+- Icons: lucide-react only. No emoji. Country is a 2-letter chip, never a flag emoji.
 - Tests use a separate test database and the `test/` R2 prefix, never production data.
 - All times UTC in the database. Every table has uuid id, created_at, updated_at.
 - Stop only for missing env keys; name the key and where to get it.
+- Git identity for this repo: vansteenbergenmatisse / vansteenbergenmatisse@gmail.com. Remote: github.com/vansteenbergenmatisse/forgeforward-hire-funnel-test.

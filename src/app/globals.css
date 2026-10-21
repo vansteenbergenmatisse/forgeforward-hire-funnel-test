@@ -1,41 +1,92 @@
 @import "tailwindcss";
 
+/* Forge Forward brand tokens. Source: design-reference/prototype.html (Part H of the spec). */
 :root {
-  --signal-red: #d93a31;
-  --signal-red-dark: #b82f27;
+  --signal: #d93a31;
+  --signal-deep: #b8302a;
+  --signal-tint: #fcefed;
   --charcoal: #0e1220;
-  --charcoal-soft: #4a5367;
-  --ivory: #e7e3dc;
-  --ivory-light: #f0ece5;
-  --ivory-line: #d9d4cb;
+  --charcoal-2: #1a1f2e;
+  --ivory: #fcfbf8;
+  --canvas: #e9e5dd;
+  --sand: #f3f0ea;
+  --line: #e7e3dc;
+  --line-strong: #d9d4cb;
   --muted: #5b5f6b;
-  --muted-light: #8a8e98;
-  --amber: #e8a317;
-  --green: #2f7d32;
-  --surface: #ffffff;
+  --subtle: #8a8e98;
+  --placeholder: #a3a6ae;
+  --white: #ffffff;
+
+  --side-text: #aeb3bf;
+  --side-muted: #7e8492;
+
+  --ok: #2f7d32;
+  --ok-tint: #e6f2e7;
+  --amber: #b45309;
+  --amber-tint: #fef3c7;
+  --amber-dot: #e8a317;
+  --blue: #1d4ed8;
+  --blue-tint: #e7eefd;
+  --purple: #6d28d9;
+  --purple-tint: #efe8fd;
+  --teal: #0f766e;
+  --teal-tint: #dff3f0;
+  --gray: #5b5f6b;
+  --gray-tint: #eef0f3;
 }
 
 @theme inline {
-  --color-signal: var(--signal-red);
-  --color-signal-dark: var(--signal-red-dark);
+  --color-signal: var(--signal);
+  --color-signal-deep: var(--signal-deep);
+  --color-signal-tint: var(--signal-tint);
   --color-charcoal: var(--charcoal);
-  --color-charcoal-soft: var(--charcoal-soft);
+  --color-charcoal-2: var(--charcoal-2);
   --color-ivory: var(--ivory);
-  --color-ivory-light: var(--ivory-light);
-  --color-line: var(--ivory-line);
+  --color-canvas: var(--canvas);
+  --color-sand: var(--sand);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-muted: var(--muted);
-  --color-muted-light: var(--muted-light);
+  --color-subtle: var(--subtle);
+  --color-placeholder: var(--placeholder);
+  --color-side-text: var(--side-text);
+  --color-side-muted: var(--side-muted);
+  --color-ok: var(--ok);
+  --color-ok-tint: var(--ok-tint);
   --color-amber: var(--amber);
-  --color-ok: var(--green);
-  --color-surface: var(--surface);
+  --color-amber-tint: var(--amber-tint);
+  --color-amber-dot: var(--amber-dot);
+  --color-blue: var(--blue);
+  --color-blue-tint: var(--blue-tint);
+  --color-purple: var(--purple);
+  --color-purple-tint: var(--purple-tint);
+  --color-teal: var(--teal);
+  --color-teal-tint: var(--teal-tint);
+  --color-gray: var(--gray);
+  --color-gray-tint: var(--gray-tint);
+
   --font-sans: var(--font-inter);
   --font-display: var(--font-barlow);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+
+  --shadow-lift: 0 10px 30px -12px rgb(14 18 32 / 0.25);
+  --shadow-drawer: -30px 0 60px -30px rgb(0 0 0 / 0.4);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--ivory);
   color: var(--charcoal);
   font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
@@ -46,4 +97,20 @@ h3,
   text-transform: uppercase;
   font-weight: 800;
   letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 2px solid var(--charcoal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

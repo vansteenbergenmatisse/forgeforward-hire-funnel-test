@@ -389,10 +389,11 @@ SMS (GoHighLevel)
 
 # Part H: Brand and copy
 
-- Colors: Signal Red #D93A31 for buttons and accents. Deep Charcoal #0E1220 for text and dark areas. Warm Ivory #E7E3DC for backgrounds (ivory to be verified against forge-hire-page-7.html).
+- Colors: Signal Red #D93A31 for buttons and accents (Red Deep #B8302A for hover, Red Tint #FCEFED for selected and error backgrounds). Deep Charcoal #0E1220 for text and dark areas. Warm Ivory #FCFBF8 for backgrounds. Lines and borders use #E7E3DC and #D9D4CB. Source: the header comment of forge-hire-page-7.html.
 - Fonts: Barlow Condensed for headings. Inter for body. Load both with next/font.
 - Logo: /public/brand/.
 - Tap targets: 48 px minimum. One main button per screen.
 - Copy: short sentences. Plain words. No jargon. No em dashes.
 - Dashboard: clean and dense. Charcoal sidebar. Ivory content area. Red only for main actions and alerts.
-- Design reference: ~/Downloads/forge-hire-page-7.html (funnel phone + laptop, Projects, Board, Settings, Test console). Pixel-match, rebuilt as clean Tailwind components.
+- Design reference: ~/Downloads/forge-hire-page-7.html (31 screens: A01 to A16 funnel phone + laptop, D01 to D15 dashboard). Pixel-match, rebuilt as clean Tailwind components. Screen to spec map is in the prototype header comment.
+- Logo: the prototype logo is used as a React component (`src/components/brand/logo.tsx`). Drop official files in /public/brand/ if they differ.
