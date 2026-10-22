@@ -43,7 +43,7 @@ I create `TEST_DATABASE_URL` (a second Neon branch or database) and `ADMIN_KEY` 
 
 | # | Task | How |
 |---|---|---|
-| A13 | Cal.com webhook | Cal.com, Settings, Developer, Webhooks, New. Paste the webhook URL I give you (`https://apply.forgeforward.io/api/webhooks/calcom`), triggers BOOKING_CREATED, BOOKING_RESCHEDULED, BOOKING_CANCELLED, and set a secret: `CALCOM_WEBHOOK_SECRET`. |
+| A13 SKIPPED | Cal.com webhook (decision: not used) | Cal.com, Settings, Developer, Webhooks, New. Paste the webhook URL I give you (`https://apply.forgeforward.io/api/webhooks/calcom`), triggers BOOKING_CREATED, BOOKING_RESCHEDULED, BOOKING_CANCELLED, and set a secret: `CALCOM_WEBHOOK_SECRET`. |
 | A14 | Cal.com event link | The public URL of your interview event type. Set it in project Settings, General, "Cal.com event link". |
 | A15 | Meta webhook for WhatsApp | After deploy, paste `https://apply.forgeforward.io/api/webhooks/whatsapp` and your `WA_VERIFY_TOKEN` into the Meta app webhook settings. |
 
@@ -74,7 +74,7 @@ Built, tested and committed (2026-10-21): Phase 1, Phase 2 funnel API, Phase 3 a
 ### Open for Claude
 - [x] Dashboard on the database: loading skeleton, DB stage ids, unmatched bookings and `linkBooking` wired, messages saved in link mode, `outputFileTracingIncludes` for the sample video, task body bug fixed. 9 dashboard Playwright specs green.
 - [x] Vercel env (all environments) set. First deploy to https://forge-hire.vercel.app is live and healthy (health ok, funnel loads the real project, admin 404 without cookie, cron 401 without token).
-- [ ] Run the live test console once: open `https://forge-hire.vercel.app/admin/k/<ADMIN_KEY>`, go to `/admin/test`, expect 13 green, then "Delete test data" shows 0 left. Checks 8 and 9 need `CALCOM_WEBHOOK_SECRET` on Vercel.
+- [ ] Run the live test console once: open `https://forge-hire.vercel.app/admin/k/<ADMIN_KEY>`, go to `/admin/test`, expect 13 green, then "Delete test data" shows 0 left. Checks 8 and 9 (Cal.com webhook) show as skipped: decision 2026-10-22, the Cal.com webhook is not used, so no `CALCOM_WEBHOOK_SECRET`. Bookings do not move cards automatically.
 - [x] Production has its own Neon branch `production` (schema-only copy, migrations 0000 and 0001 recorded, seeded, Cal link set to https://cal.com/matisseforgeforward/interview-appointment-setter). Vercel Production `DATABASE_URL` and `DATABASE_URL_UNPOOLED` point at it; Preview and Development still use the Development branch.
 - [x] `applicants.task_file_name` and `task_file_bytes` added (migration `0001_minor_black_panther`, applied to test, Development and Production). Optional `unmatched_bookings.linked_applicant_id`, `dismissed_at` stay inside the payload JSON for now.
 - [ ] Hired and Rejected are matched by stage NAME (no role column). Keep those names for terminal stages or add roles.

@@ -192,21 +192,21 @@ const checks: Record<CheckId, Check> = {
       },
     });
     const secret = process.env.CALCOM_WEBHOOK_SECRET;
-    const headers: Record<string, string> = secret ? { [CALCOM_SIGNATURE_HEADER]: signCalcomBody(raw, secret) } : {};
+    if (!secret) return { detail: "Skipped. The Cal.com webhook is not enabled (no CALCOM_WEBHOOK_SECRET)." };
+    const headers: Record<string, string> = { [CALCOM_SIGNATURE_HEADER]: signCalcomBody(raw, secret) };
     const res = await call(ctx, "/api/webhooks/calcom", { headers, body: raw });
-    if (res.status === 503) throw new CheckFailure("CALCOM_WEBHOOK_SECRET is not set on this deployment.");
     if (res.status !== 200) throw new CheckFailure(`Webhook refused. ${errorText(res)}`);
     const row = await loadApplicant(id);
     if (row.role !== "on_booking") throw new CheckFailure(`The stage is "${row.stageName ?? "none"}", expected Interview booked.`);
-    const unsigned = secret ? "" : " (secret not set, sent unsigned)";
-    return { detail: `Moved to ${row.stageName}${unsigned}`, state: { webhookRaw: raw, webhookEvents: await eventCount(id, "booking_created") } };
+    return { detail: `Moved to ${row.stageName}`, state: { webhookRaw: raw, webhookEvents: await eventCount(id, "booking_created") } };
   },
 
   async "webhook-repeat"(ctx, state) {
     const id = need(state, "applicantId");
-    const raw = need(state, "webhookRaw");
     const secret = process.env.CALCOM_WEBHOOK_SECRET;
-    const headers: Record<string, string> = secret ? { [CALCOM_SIGNATURE_HEADER]: signCalcomBody(raw, secret) } : {};
+    if (!secret) return { detail: "Skipped. The Cal.com webhook is not enabled." };
+    const raw = need(state, "webhookRaw");
+    const headers: Record<string, string> = { [CALCOM_SIGNATURE_HEADER]: signCalcomBody(raw, secret) };
     const res = await call(ctx, "/api/webhooks/calcom", { headers, body: raw });
     if (res.status !== 200) throw new CheckFailure(`Webhook refused. ${errorText(res)}`);
     if ((res.body as { result?: string } | null)?.result !== "duplicate") throw new CheckFailure("The repeat was not dropped as a duplicate.");
