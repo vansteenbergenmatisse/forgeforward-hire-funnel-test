@@ -1,4 +1,4 @@
-export { fillTemplate, MissingVariableError, TEMPLATE_VARIABLES, type TemplateVariable } from "./fill-template";
+export { fillTemplate, MissingVariableError, extractVariables, unknownVariables, TEMPLATE_VARIABLES, type TemplateVariable } from "./fill-template";
 export { getSendMode, type SendMode } from "./send-mode";
 export { buildLinkUrl, type LinkInput } from "./link-url";
 export { whatsappWindow, whatsappWindowText, WHATSAPP_WINDOW_HOURS, type WhatsAppWindow } from "./whatsapp-window";

@@ -8,6 +8,7 @@ export class ApiError extends Error {
   }
 }
 
+export const badRequest = (code: string, message: string) => new ApiError(400, code, message);
 export const notFound = (what: string) => new ApiError(404, "not_found", `${what} not found.`);
 export const conflict = (code: string, message: string) => new ApiError(409, code, message);
 export const unprocessable = (code: string, message: string) => new ApiError(422, code, message);

@@ -130,6 +130,8 @@ export const applicants = pgTable(
     taskText: text("task_text"),
     taskLink: text("task_link"),
     taskFileKey: text("task_file_key"),
+    taskFileName: text("task_file_name"),
+    taskFileBytes: integer("task_file_bytes"),
     score: integer("score"),
     notes: text("notes").notNull().default(""),
     appliedBefore: boolean("applied_before").notNull().default(false),

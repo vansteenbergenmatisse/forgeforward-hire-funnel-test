@@ -72,8 +72,10 @@ export function toApplicantView(
     didTask: row.didTask,
     taskText: row.taskText,
     taskLink: row.taskLink,
-    // Size is not stored yet (see SCHEMA NEEDS in the report). 0 hides nothing important.
-    taskFile: row.taskFileKey ? { name: fileName(row.taskFileKey), url: mediaPath(row.id, "task"), bytes: 0 } : null,
+    // Rows from before the size columns existed have no name or size. Fall back to the key and 0.
+    taskFile: row.taskFileKey
+      ? { name: row.taskFileName ?? fileName(row.taskFileKey), url: mediaPath(row.id, "task"), bytes: row.taskFileBytes ?? 0 }
+      : null,
     score: row.score,
     notes: row.notes,
     appliedBefore: row.appliedBefore,

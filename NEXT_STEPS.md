@@ -76,9 +76,9 @@ Built, tested and committed (2026-10-21): Phase 1, Phase 2 funnel API, Phase 3 a
 - [x] Vercel env (all environments) set. First deploy to https://forge-hire.vercel.app is live and healthy (health ok, funnel loads the real project, admin 404 without cookie, cron 401 without token).
 - [ ] Run the live test console once: open `https://forge-hire.vercel.app/admin/k/<ADMIN_KEY>`, go to `/admin/test`, expect 13 green, then "Delete test data" shows 0 left. Checks 8 and 9 need `CALCOM_WEBHOOK_SECRET` on Vercel.
 - [ ] Production and Preview databases: today `DATABASE_URL` on Vercel is one value for all three environments and points at the Development Neon branch. Give Production its own Neon branch URL (A21), then migrate and seed it.
-- [ ] Optional schema: `applicants.task_file_name`, `applicants.task_file_bytes` (task file size shows 0 in the drawer today). Optional `unmatched_bookings.linked_applicant_id`, `dismissed_at` (kept inside the payload JSON for now).
+- [x] `applicants.task_file_name` and `task_file_bytes` added (migration `0001_minor_black_panther`, applied to the test branch only). Still to do: apply it to Development (`set -a; . ./.env.development.local; set +a; pnpm db:migrate`, or run the two `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` lines in the Neon SQL editor), and to Production with A21. Not committed yet. Optional `unmatched_bookings.linked_applicant_id`, `dismissed_at` stay inside the payload JSON for now.
 - [ ] Hired and Rejected are matched by stage NAME (no role column). Keep those names for terminal stages or add roles.
-- [ ] Template validation: server does not check unknown `{variables}` (client does).
+- [x] Template validation: the server now rejects unknown `{variables}` with a 400 (`unknown_variables`). Not committed yet.
 - [ ] Run `pnpm cron:backup` once by hand so the first backup exists (needs `postgresql@18` pg_dump, installed locally).
 - [ ] Final: run the test console on production (13 green, then 0 test rows left), confirm last night's backup and the restore proof, decide on the dev-only route `/dev/video-flow` (404 in production).
 

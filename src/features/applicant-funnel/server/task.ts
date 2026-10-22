@@ -12,7 +12,7 @@ export { taskSchema };
 
 type StageRole = "entry_new" | "entry_task";
 
-type Finish = { didTask: boolean; taskText: string | null; taskLink: string | null; taskFileKey: string | null };
+type Finish = { didTask: boolean; taskText: string | null; taskLink: string | null; taskFileKey: string | null; taskFileName?: string | null; taskFileBytes?: number | null };
 
 /** Sets the entry stage, marks the application completed and writes the timeline events. */
 export async function finishApplication(applicantId: string, projectId: string, role: StageRole, data: Finish) {
@@ -42,6 +42,7 @@ export function submitTask(input: TaskInput, key: string): Promise<{ stage: Stag
     const role: StageRole = submitting ? "entry_task" : "entry_new";
     if (applicant.funnelStep === "completed") return { stage: applicant.didTask ? "entry_task" : "entry_new" };
 
+    let fileBytes: number | null = null;
     if (submitting) {
       if (input.text && !project.taskAllowText) throw new ApiError(400, "invalid", "Text answers are off");
       if (input.link && !project.taskAllowLink) throw new ApiError(400, "invalid", "Links are off");
@@ -51,6 +52,7 @@ export function submitTask(input: TaskInput, key: string): Promise<{ stage: Stag
         const head = await headObject(input.fileKey);
         if (!head) throw new ApiError(409, "upload_missing", "We could not find your file. Please try again.");
         if (head.bytes > MAX_TASK_FILE_BYTES) throw new ApiError(400, "invalid", "File is too large");
+        fileBytes = head.bytes;
       }
     }
 
@@ -59,6 +61,8 @@ export function submitTask(input: TaskInput, key: string): Promise<{ stage: Stag
       taskText: submitting ? (input.text?.trim() || null) : null,
       taskLink: submitting ? (input.link ?? null) : null,
       taskFileKey: submitting ? (input.fileKey ?? null) : null,
+      taskFileName: submitting && input.fileKey ? (input.fileKey.split("/").pop() ?? null) : null,
+      taskFileBytes: submitting && input.fileKey ? fileBytes : null,
     });
     return { stage: role };
   });

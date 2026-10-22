@@ -1,4 +1,4 @@
-import { TEMPLATE_VARIABLES } from "@/features/messaging";
+import { extractVariables, TEMPLATE_VARIABLES, unknownVariables } from "@/features/messaging";
 import type { Channel, TemplateDef } from "@/features/projects";
 
 export const CHANNELS: { id: Channel; label: string }[] = [
@@ -14,18 +14,7 @@ export const SAMPLE_APPLICANT: Record<string, string> = {
   cal_link: "https://cal.com/forgeforward/interview?name=Sam%20Rivera",
 };
 
-/** Every {token} in the text, in order, without duplicates. */
-export function extractVariables(text: string): string[] {
-  const out: string[] = [];
-  for (const m of text.matchAll(/\{([a-z_]+)\}/g)) if (!out.includes(m[1])) out.push(m[1]);
-  return out;
-}
-
-/** Tokens in the text that are not a known variable. They would block every send. */
-export function unknownVariables(text: string): string[] {
-  const known: readonly string[] = TEMPLATE_VARIABLES;
-  return extractVariables(text).filter((v) => !known.includes(v));
-}
+export { extractVariables, unknownVariables };
 
 export type TemplateErrors = Partial<Record<"name" | "subject" | "body" | "waTemplateName" | "waLanguage" | "waVariables", string>>;
 

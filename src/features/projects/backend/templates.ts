@@ -3,6 +3,7 @@ import { db, tables } from "@/platform/db";
 import type { TemplateDef } from "../types";
 import { projectBySlug } from "./bundles";
 import { notFound, unprocessable } from "./errors";
+import { assertKnownVariables } from "./template-variables";
 import { toTemplate } from "./mappers";
 import { lastPosition } from "./projects";
 import type { z } from "zod";
@@ -15,6 +16,7 @@ type Fields = Pick<TemplateRow, "channel" | "name" | "subject" | "body" | "waTem
 
 /** Channel rules: email needs a subject, WhatsApp needs the Meta template name and language. Other channels drop WhatsApp fields. */
 function checked(f: Fields): Fields {
+  assertKnownVariables(f.subject, f.body);
   if (f.channel === "email" && f.subject.trim() === "") throw unprocessable("invalid_template", "Add a subject for the email.");
   if (f.channel !== "whatsapp") return { ...f, subject: f.channel === "email" ? f.subject.trim() : "", waTemplateName: null, waLanguage: null, waVariables: [] };
   const name = (f.waTemplateName ?? "").trim();

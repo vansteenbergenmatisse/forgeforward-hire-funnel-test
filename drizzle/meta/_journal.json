@@ -8,6 +8,13 @@
       "when": 1792616507356,
       "tag": "0000_good_puma",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792671192152,
+      "tag": "0001_minor_black_panther",
+      "breakpoints": true
     }
   ]
 }
