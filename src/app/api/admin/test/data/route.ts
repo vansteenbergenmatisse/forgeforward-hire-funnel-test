@@ -15,7 +15,9 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const denied = requireAdmin(req);
   if (denied) return denied;
-  const counts = await deleteTestData();
-  await recordAudit({ action: "test_data.delete", targetType: "test_data", detail: { counts } });
-  return NextResponse.json(counts, { headers: { "cache-control": "no-store" } });
+  const removed = await countTestData();
+  const left = await deleteTestData();
+  await recordAudit({ action: "test_data.delete", targetType: "test_data", detail: { removed, left } });
+  // The response is what is left, so the console shows 0 after a clean delete.
+  return NextResponse.json(left, { headers: { "cache-control": "no-store" } });
 }
