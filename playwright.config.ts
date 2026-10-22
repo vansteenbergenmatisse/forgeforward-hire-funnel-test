@@ -4,7 +4,7 @@ const launchOptions = { args: ["--use-fake-device-for-media-stream", "--use-fake
 
 export default defineConfig({
   testDir: "./e2e",
-  testIgnore: ["**/dashboard/**", "**/funnel-video/**"],
+  testIgnore: ["**/dashboard/**", "**/funnel-video/**", "**/devices-e2e/**"],
   timeout: 60_000,
   fullyParallel: true,
   reporter: [["list"]],

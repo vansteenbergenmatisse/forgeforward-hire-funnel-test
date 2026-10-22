@@ -113,7 +113,7 @@ describe.skipIf(!haveDb)("funnel api", () => {
     const ok = (await api.startApplication(startReq(ip, signed), payload({ email: `rl7-${suffix}@example.com` }), `key-${crypto.randomUUID()}`)) as { applicant_id: string };
     const [row] = await db().select().from(tables.applicants).where(eq(tables.applicants.id, ok.applicant_id));
     expect(row.isTest).toBe(true);
-  });
+  }, 30_000);
 
   it("detects the honeypot", () => {
     expect(api.isHoneypot({ website: "http://spam" })).toBe(true);

@@ -39,7 +39,7 @@ import { PipelineSkeleton } from "./pipeline-skeleton";
 import { ProjectNotFound } from "./project-not-found";
 import { Toolbar, type SortOption } from "./toolbar";
 
-type Props = { slug: string; tab: PipelineTab; applicantId?: string; sendChannel?: Channel; autoPlay?: boolean };
+type Props = { slug: string; tab: PipelineTab; applicantId?: string; sendChannel?: Channel; autoPlay?: boolean; showTest?: boolean };
 
 const CARD_SORTS: SortOption[] = [
   { value: "newest", label: "Newest first" },
@@ -59,7 +59,7 @@ export function PipelineScreen(props: Props) {
   return <ProjectPipeline {...props} record={record} />;
 }
 
-function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, record }: Props & { record: NonNullable<ReturnType<typeof useProjects>["state"]["projects"][number]> }) {
+function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, showTest, record }: Props & { record: NonNullable<ReturnType<typeof useProjects>["state"]["projects"][number]> }) {
   const router = useRouter();
   const now = useNow();
   const { applicants, actions, loading, error, truncated, reload } = useApplicants(slug);
@@ -70,7 +70,7 @@ function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, record
   const [sort, setSort] = useState<SortKey>("newest");
   const [tableSort, setTableSort] = useState<TableSort>(DEFAULT_TABLE_SORT);
 
-  const filtered = useMemo(() => filterApplicants(applicants, filters), [applicants, filters]);
+  const filtered = useMemo(() => filterApplicants(applicants, { ...filters, showTest }), [applicants, filters, showTest]);
   const onBoard = useMemo(() => filtered.filter((a) => a.stageId !== null), [filtered]);
   const boardCards = useMemo(() => sortApplicants(onBoard, sort), [onBoard, sort]);
   const dnfCards = useMemo(() => sortApplicants(filtered.filter((a) => a.stageId === null), sort), [filtered, sort]);
@@ -79,8 +79,10 @@ function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, record
   const isFiltered = hasActiveFilters(filters);
   const clearFilters = () => setFilters(EMPTY_FILTERS);
 
-  const open = (id: string, play?: boolean) => router.push(pipelineHref(slug, tab, id) + (play ? "&play=1" : ""), { scroll: false });
-  const close = () => router.push(pipelineHref(slug, tab), { scroll: false });
+  // Keeps ?test=1 while the drawer opens and closes.
+  const keepTest = (href: string) => (showTest ? `${href}${href.includes("?") ? "&" : "?"}test=1` : href);
+  const open = (id: string, play?: boolean) => router.push(keepTest(pipelineHref(slug, tab, id) + (play ? "&play=1" : "")), { scroll: false });
+  const close = () => router.push(keepTest(pipelineHref(slug, tab)), { scroll: false });
 
   // Focus goes back to the card (or row) that opened the drawer.
   const lastOpened = useRef<string | null>(null);

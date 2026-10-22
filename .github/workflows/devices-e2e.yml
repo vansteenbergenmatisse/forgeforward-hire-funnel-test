@@ -1,0 +1,73 @@
+name: Devices end-to-end (production)
+
+# Real funnel -> database -> R2 -> dashboard check on real Linux, macOS and Windows machines.
+# Manual only. Writes only is_test applicants and deletes all test data in the teardown.
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Site to test (default https://apply.forgeforward.io)"
+        required: false
+        default: ""
+      skip_board:
+        description: "Set to 1 when the target does not have the ?test=1 board option deployed yet"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  # One run at a time: they all share the same test data and the same teardown.
+  group: devices-e2e
+  cancel-in-progress: false
+
+jobs:
+  devices:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 1 # runs one OS at a time so the teardown of one never deletes data of another
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+      E2E_BASE_URL: ${{ inputs.base_url }}
+      E2E_SKIP_BOARD: ${{ inputs.skip_board }}
+      E2E_WORKERS: "2"
+      CI: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # WebKit needs system libraries on Linux; --with-deps installs them there and is a no-op elsewhere.
+      - name: Install browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Run the device checks
+        run: pnpm exec playwright test -c playwright.devices.e2e.config.ts
+      - name: Upload the HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: devices-e2e-report-${{ matrix.os }}
+          path: playwright-report-devices-e2e
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: devices-e2e-screenshots-${{ matrix.os }}
+          path: test-results-devices-e2e
+          if-no-files-found: ignore
+          retention-days: 14

@@ -12,6 +12,8 @@ export type ApplicantFilters = {
   /** Inclusive days as YYYY-MM-DD from the date picker. They are days in the admin's own time zone. */
   from?: string | null;
   to?: string | null;
+  /** Admin-only `?test=1` on the board: show is_test applicants (the end-to-end device check creates them). Off by default. */
+  showTest?: boolean;
 };
 
 export const EMPTY_FILTERS: ApplicantFilters = {};
@@ -48,7 +50,7 @@ function inDateRange(createdAt: string, from?: string | null, to?: string | null
 
 export function filterApplicants(list: ApplicantView[], f: ApplicantFilters): ApplicantView[] {
   return list.filter((a) => {
-    if (a.isTest) return false;
+    if (a.isTest && !f.showTest) return false;
     if (!matchesSearch(a, f.search ?? "")) return false;
     if (f.didTask && !a.didTask) return false;
     if (f.audioOnly && !a.audioOnly) return false;

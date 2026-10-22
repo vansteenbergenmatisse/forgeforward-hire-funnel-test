@@ -11,5 +11,5 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
   const { slug } = await params;
   const sp = await searchParams;
   const send = first(sp.send);
-  return <PipelineScreen slug={slug} tab={parseTab(sp.tab)} applicantId={first(sp.a)} sendChannel={CHANNELS.find((c) => c === send)} autoPlay={first(sp.play) === "1"} />;
+  return <PipelineScreen slug={slug} tab={parseTab(sp.tab)} applicantId={first(sp.a)} sendChannel={CHANNELS.find((c) => c === send)} autoPlay={first(sp.play) === "1"} showTest={first(sp.test) === "1"} />;
 }

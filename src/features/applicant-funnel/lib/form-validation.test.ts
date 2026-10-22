@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { describe, expect, it } from "vitest";
 import { MOCK_QUESTIONS } from "@/features/projects";
 import { countErrors, errorSummary, firstErrorKey, parseNumberAnswer, validateForm, type FormValues } from "./form-validation";
@@ -79,5 +80,11 @@ describe("text length", () => {
     const errors = validateForm({ ...good, answers: { s: "a".repeat(201), l: "a".repeat(2001) } }, [short, long]);
     expect(errors["q:s"]).toBeTruthy();
     expect(errors["q:l"]).toBeTruthy();
+  });
+});
+
+describe("zod and the site CSP", () => {
+  it("runs without the eval probe (the CSP has no unsafe-eval)", () => {
+    expect(z.core.globalConfig.jitless).toBe(true);
   });
 });

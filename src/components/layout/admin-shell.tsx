@@ -116,6 +116,11 @@ function MobileBar({ active, project }: Omit<ShellProps, "children">) {
           {i.label}
         </Link>
       ))}
+      <form action={`${ADMIN_BASE_PATH}/logout`} method="post" className="ml-auto shrink-0">
+        <button type="submit" className="h-9 rounded-md px-3 text-[13px] font-semibold text-side-text hover:bg-white/5 hover:text-white">
+          Sign out
+        </button>
+      </form>
     </nav>
   );
 }

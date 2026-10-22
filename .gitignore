@@ -45,3 +45,9 @@ next-env.d.ts
 
 # Local Claude Code MCP config (Neon). Not shared.
 .mcp.json
+
+# playwright
+/test-results/
+/playwright-report/
+/playwright-report-devices-e2e/
+/test-results-devices-e2e/

@@ -29,8 +29,10 @@ Hiring funnel (/a/[slug]) and private applicant dashboard (/adminMatt) for Forge
 - `pnpm exec tsc --noEmit --incremental false`, `pnpm lint`, `pnpm test` (vitest), `pnpm build`.
 - Playwright: start a dev server, then `pnpm exec playwright test` (funnel, baseURL `E2E_BASE_URL` or http://localhost:3101) and `pnpm exec playwright test -c playwright.video.config.ts` (video flow, http://localhost:3104). Chromium runs with fake camera and mic flags.
 - Dashboard Playwright: `pnpm exec tsx scripts/e2e-dashboard-server.ts` (test DB, `test/` prefix, providers off), then `pnpm exec playwright test -c playwright.dashboard.config.ts`. `pnpm exec playwright test` skips the dashboard and video specs.
+- Device end-to-end on production: `pnpm test:e2e:devices` (`playwright.devices.e2e.config.ts`, `e2e/devices-e2e/`). Real funnel to DB, R2 and dashboard per device. Needs `ADMIN_KEY` and `ADMIN_PASSWORD` (env or `.env.local`), optional `DATABASE_URL_UNPOOLED`/`E2E_DB_ENV_FILE`. Writes only `is_test` data (signed test-console header on same-origin `/api/apply/**`) and its teardown deletes it all. Board check uses `/adminMatt/p/<slug>?test=1` (admin only; `E2E_SKIP_BOARD=1` until deployed). Real OS coverage: the manual GitHub Action `devices-e2e.yml`. Untestable: real phone cameras, Facebook/Instagram apps.
 - Backups: `pnpm cron:backup` (needs `pg_dump` 18: `brew install postgresql@18`), `scripts/restore.ts --prove`. Crons: `vercel.json` calls `/api/cron/*` with `CRON_SECRET`.
 - Parallel dev servers need separate build dirs: `NEXT_DIST_DIR=.next-x pnpm exec next dev -p <port>`. Run `pnpm exec next typegen` if route types look stale.
+- Device matrix (read-only, live site by default): `pnpm test:devices` / `pnpm test:devices:local`; details in MANUAL_CHECKS.md.
 - DB: `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:seed`.
 
 ## Front-end switches (dev)

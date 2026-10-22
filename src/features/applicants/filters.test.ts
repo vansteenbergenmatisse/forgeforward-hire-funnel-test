@@ -44,6 +44,10 @@ describe("filters", () => {
     const test = { ...board[0], id: "t", isTest: true };
     expect(filterApplicants([test], {})).toHaveLength(0);
   });
+  it("shows test applicants only when asked", () => {
+    const test = { ...board[0], id: "t", isTest: true };
+    expect(filterApplicants([test], { showTest: true })).toHaveLength(1);
+  });
   it("sorts newest and by score", () => {
     const n = sortApplicants(board, "newest");
     expect(n[0].createdAt >= n[n.length - 1].createdAt).toBe(true);

@@ -78,11 +78,11 @@ export function Checkbox({
   error?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-charcoal">
+    <label className="flex min-h-12 cursor-pointer items-center gap-3.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-charcoal">
       <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span
         className={cn(
-          "mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg border-2 transition-colors",
+          "grid size-7 shrink-0 place-items-center rounded-lg border-2 transition-colors",
           checked ? "border-charcoal bg-charcoal text-white" : error ? "border-signal bg-white" : "border-line-strong bg-white",
         )}
       >
