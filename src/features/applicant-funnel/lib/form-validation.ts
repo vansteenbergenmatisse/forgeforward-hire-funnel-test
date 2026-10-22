@@ -1,11 +1,8 @@
+import "@/shared/zod-jitless";
 import { z } from "zod";
 import { parsePhone } from "@/shared/phone";
 import type { QuestionDef } from "@/features/projects";
 import { ANSWER_LIMITS } from "../schemas";
-
-// The site CSP has no 'unsafe-eval'. Zod probes `new Function("")` to enable its fast path, and the browser reports
-// that probe as a CSP violation and a console error. Skipping the probe keeps the console clean; parsing is unchanged.
-z.config({ jitless: true });
 
 export type AnswerValue = string | number | boolean | string[];
 

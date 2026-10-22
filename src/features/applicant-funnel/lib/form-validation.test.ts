@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { z } from "zod";
 import { describe, expect, it } from "vitest";
 import { MOCK_QUESTIONS } from "@/features/projects";
@@ -87,4 +88,21 @@ describe("zod and the site CSP", () => {
   it("runs without the eval probe (the CSP has no unsafe-eval)", () => {
     expect(z.core.globalConfig.jitless).toBe(true);
   });
+
+  it("building the funnel schemas never probes Function() (fresh process, so zod starts uncached)", () => {
+    const code = `
+      const real = globalThis.Function;
+      let probes = 0;
+      globalThis.Function = new Proxy(real, {
+        apply(t, th, a) { if (a.length === 1 && a[0] === "") probes++; return Reflect.apply(t, th, a); },
+        construct(t, a, nt) { if (a.length === 1 && a[0] === "") probes++; return Reflect.construct(t, a, nt); },
+      });
+      await import("./src/features/applicant-funnel/schemas.ts");
+      await import("./src/features/applicant-funnel/lib/form-validation.ts");
+      globalThis.Function = real;
+      console.log("PROBES=" + probes);
+    `;
+    const out = execFileSync("pnpm", ["exec", "tsx", "--input-type=module", "-e", code], { encoding: "utf8", cwd: process.cwd() });
+    expect(out).toContain("PROBES=0");
+  }, 30_000);
 });

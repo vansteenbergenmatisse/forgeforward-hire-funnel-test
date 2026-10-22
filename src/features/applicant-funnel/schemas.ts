@@ -1,3 +1,4 @@
+import "@/shared/zod-jitless";
 import { z } from "zod";
 import { parsePhone } from "@/shared/phone";
 
