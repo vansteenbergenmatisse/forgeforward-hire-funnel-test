@@ -93,7 +93,7 @@ Built, tested and committed (2026-10-21): Phase 1, Phase 2 funnel API, Phase 3 a
 
 ## D. Bug and security sweep (2026-10-22)
 
-Two analysis agents found 79 verified bugs (B001 to B079) and 59 security findings (S001 to S059). All code fixes are in; 536 tests, typecheck, lint and the production build are green; the funnel, video and dashboard Playwright specs pass on iPhone (WebKit), Pixel, Firefox and desktop Safari profiles against a production build, with no CSP violations. Migration `0002_strong_colonel_america` (is_final, admin_audit, pg_trgm indexes) is applied to test, Development and Production.
+Two analysis agents found 79 verified bugs (B001 to B079) and 59 security findings (S001 to S059). All code fixes are in; 536 tests, typecheck, lint and the production build are green; the funnel, video and dashboard Playwright specs pass on iPhone (WebKit), Pixel, Firefox and desktop Safari profiles against a production build, with no CSP violations. Migrations `0002_strong_colonel_america` (is_final, admin_audit, pg_trgm indexes) and `0003_complex_silver_fox` (resume tokens stored as SHA-256 hashes; a handoff to a new device rotates the token) are applied to test, Development and Production. The /start idempotency record stores the resume token sealed (AES-256-GCM, key derived from ADMIN_KEY, so rotating ADMIN_KEY invalidates in-flight /start replays only).
 
 Config added: `ENABLE_DEV_ROUTES=1` re-enables `?sim=`, `?step=`, `?video=stub` and `/dev/video-flow` (only for e2e builds, never in real production). `CSP_IMG_HOSTS` adds image hosts to the CSP for task-page pictures. `APP_DATABASE_URL` wins over `DATABASE_URL`.
 
@@ -106,9 +106,7 @@ Decisions that are yours (not code):
 - S044: `.mcp.json` is tracked in git. It holds no key, only the project id and OAuth.
 - S029: a signed token inside the Cal link.
 - S031: edge rate limiting is a Vercel setting.
-- S020: resume token hashing and rotation (schema and lookups).
 - S038 and S033: task-page images from other hosts need `CSP_IMG_HOSTS`; closed versus unknown project notices differ on purpose.
-- Open bug part: an applicant who never completed a video keeps stray uploads in R2 (needs a marker column).
 
 ## C. Starting a fresh session
 

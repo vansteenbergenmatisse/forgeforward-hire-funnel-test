@@ -26,4 +26,32 @@ describe.skipIf(!haveDb)("once() with a dead request", () => {
     const left = await db().select().from(tables.idempotencyKeys).where(eq(tables.idempotencyKeys.key, `${route}:k2`));
     expect(left).toHaveLength(0);
   });
+
+  it("with a codec: stores no plaintext, replays the same token, and misses on legacy or tampered rows", async () => {
+    const { db, tables } = await import("@/platform/db");
+    const { once } = await import("./idempotency");
+    const { seal, unseal } = await import("./seal");
+    process.env.ADMIN_KEY = "a".repeat(48);
+    const codec = {
+      seal: (r: { t: string }) => ({ t: seal(r.t) }),
+      open: (s: unknown) => {
+        const t = unseal((s as { t?: unknown } | null)?.t);
+        return t ? { t } : null;
+      },
+    };
+    let runs = 0;
+    const work = async () => ({ t: `secret-${++runs}` });
+    const first = await once(route, "c1", work, codec);
+    const [row] = await db().select().from(tables.idempotencyKeys).where(eq(tables.idempotencyKeys.key, `${route}:c1`));
+    expect(JSON.stringify(row.response)).not.toContain(first.t);
+    expect(await once(route, "c1", work, codec)).toEqual(first);
+    expect(runs).toBe(1);
+
+    await db().update(tables.idempotencyKeys).set({ response: { t: "legacy-plain" } }).where(eq(tables.idempotencyKeys.key, `${route}:c1`));
+    const again = await once(route, "c1", work, codec);
+    expect(again.t).toBe("secret-2");
+    expect(runs).toBe(2);
+    const [row2] = await db().select().from(tables.idempotencyKeys).where(eq(tables.idempotencyKeys.key, `${route}:c1`));
+    expect(JSON.stringify(row2.response)).not.toContain("secret-2");
+  });
 });

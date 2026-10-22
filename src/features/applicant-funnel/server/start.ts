@@ -9,15 +9,28 @@ import { buildAnswers } from "./answers";
 import { isTestConsole, TEST_CONSOLE_HEADER } from "./bypass";
 import { ApiError } from "./errors";
 import { parseBody } from "./http";
-import { once } from "./idempotency";
+import { once, type StoredCodec } from "./idempotency";
 import { loadProjectRow } from "./project";
 import { clientIp, ipBucket, limitStore } from "./rate-limit";
+import { seal, unseal } from "./seal";
 
 const WINDOW_MS = 10 * 60_000;
 function maxPerWindow() {
   const n = Number(optionalEnv("FUNNEL_RATE_LIMIT_MAX"));
   return Number.isInteger(n) && n > 0 ? n : 5;
 }
+
+type StartResult = { applicant_id: string; resume_token: string };
+
+/** The stored /start response holds the resume token sealed, never in plaintext. */
+export const startCodec: StoredCodec<StartResult> = {
+  seal: (r) => ({ ...r, resume_token: seal(r.resume_token) }),
+  open: (stored) => {
+    const r = stored as Partial<StartResult> | null;
+    const token = unseal(r?.resume_token);
+    return token && typeof r?.applicant_id === "string" ? { applicant_id: r.applicant_id, resume_token: token } : null;
+  },
+};
 
 /** Honeypot hit: looks like success, saves nothing. */
 export function fakeSession() {
@@ -94,5 +107,5 @@ export async function startApplication(req: Request, body: unknown, key: string)
       return row.id;
     });
     return { applicant_id: applicantId, resume_token: resumeToken };
-  });
+  }, startCodec);
 }
