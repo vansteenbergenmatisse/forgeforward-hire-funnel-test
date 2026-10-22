@@ -1,12 +1,26 @@
 import { and, asc, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { db, tables } from "@/platform/db";
-import { deleteObject, headObject } from "@/platform/r2";
+import { deleteObject, headObject, listObjects } from "@/platform/r2";
 import { recordSystemError } from "@/platform/logging/system-errors";
 import { DEFAULT_BUDGET_MS, mapLimit } from "./budget";
-import { mediaKeys, retentionCutoff } from "./rules";
+import { applicantFolders, mediaKeys, retentionCutoff } from "./rules";
 
 const BATCH = 25;
 const CONCURRENCY = 5;
+
+/** Every key under the applicant's own folders: earlier takes, replaced files and uploads that were never completed. */
+async function folderKeys(applicantId: string, known: string[]): Promise<string[]> {
+  const keys: string[] = [];
+  for (const folder of applicantFolders(applicantId, known)) {
+    let token: string | undefined;
+    do {
+      const page = await listObjects(folder, { token });
+      keys.push(...page.objects.map((o) => o.key));
+      token = page.next;
+    } while (token);
+  }
+  return keys;
+}
 
 export type RunOptions = {
   dryRun?: boolean;
@@ -66,12 +80,13 @@ export async function runRetention(opts: RunOptions = {}): Promise<RetentionResu
     if (rows.length === 0) return result;
 
     await mapLimit(rows, CONCURRENCY, async (row) => {
-      const keys = mediaKeys(row);
+      const known = mediaKeys(row);
       result.applicants += 1;
-      result.files += keys.length;
-      if (result.sample.length < 20) result.sample.push({ applicantId: row.id, files: keys.length });
-      if (dryRun) return;
       try {
+        const keys = [...new Set([...known, ...(await folderKeys(row.id, known))])];
+        result.files += keys.length;
+        if (result.sample.length < 20) result.sample.push({ applicantId: row.id, files: keys.length });
+        if (dryRun) return;
         for (const key of keys) await deleteObject(key);
         await db().update(a).set({ videoDeletedAt: new Date() }).where(eq(a.id, row.id));
         await db().insert(tables.applicantEvents).values({

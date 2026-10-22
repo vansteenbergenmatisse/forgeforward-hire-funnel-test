@@ -12,7 +12,10 @@ function videoConstraints(deviceId?: string): MediaTrackConstraints {
   };
 }
 
-/** Asks for camera and mic. Falls back to mic only. Never throws. */
+/**
+ * Asks for camera and mic. Falls back to mic only when no camera was picked. Never throws.
+ * With a `deviceId` (switching cameras) there is no mic-only fallback: the caller keeps the old stream instead.
+ */
 export async function requestMedia(deviceId?: string): Promise<CaptureResult> {
   const md = typeof navigator !== "undefined" ? navigator.mediaDevices : undefined;
   if (!md?.getUserMedia) return { ok: false, kind: "noMic", cameraFailed: true, micFailed: true };
@@ -23,6 +26,7 @@ export async function requestMedia(deviceId?: string): Promise<CaptureResult> {
   } catch (e) {
     denied = isDenied(e);
   }
+  if (deviceId) return { ok: false, kind: denied ? "denied" : "noMic", cameraFailed: true, micFailed: false };
   try {
     const stream = await md.getUserMedia({ audio: true });
     return { ok: true, stream, hasVideo: false };

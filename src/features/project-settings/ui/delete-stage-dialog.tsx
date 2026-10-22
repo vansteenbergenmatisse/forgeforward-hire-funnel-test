@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { StageDef } from "@/features/projects";
+import { moveOutOfKeptWarning } from "../logic/retention-warning";
 import { validDeleteTargets } from "../logic/stages";
 import { ConfirmDialog } from "./confirm-dialog";
 import { DenseSelect } from "./dense";
@@ -23,6 +24,7 @@ export function DeleteStageDialog({
   const targets = stage ? validDeleteTargets(stages, stage.id) : [];
   const [target, setTarget] = useState<string>("");
   const effective = target && targets.some((t) => t.id === target) ? target : (targets[0]?.id ?? "");
+  const videoWarning = stage && cards > 0 ? moveOutOfKeptWarning(stage, targets.find((t) => t.id === effective), cards) : null;
 
   return (
     <ConfirmDialog
@@ -51,6 +53,11 @@ export function DeleteStageDialog({
               </option>
             ))}
           </DenseSelect>
+          {videoWarning && (
+            <p role="alert" className="rounded-lg bg-amber-tint px-3 py-2 text-[13.5px] font-semibold text-amber">
+              {videoWarning}
+            </p>
+          )}
         </div>
       ) : (
         <p>No cards sit in this stage. This cannot be undone.</p>

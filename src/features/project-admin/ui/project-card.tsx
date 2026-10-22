@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { LayoutGrid } from "lucide-react";
 import { Badge, toneDot } from "@/components/ui";
-import { MOCK_NOW, boardCount, didNotFinishCount, stageCounts, useApplicants } from "@/features/applicants";
+import { boardCount, didNotFinishCount, stageCounts, useApplicants } from "@/features/applicants";
 import { startedThisWeek } from "../weekly";
 import type { ProjectRecord } from "../types";
 import { CopyLinkButton } from "./copy-link-button";
@@ -24,7 +24,7 @@ export function ProjectCard({ project }: { project: ProjectRecord }) {
   const { slug, name, status } = project.def;
   const { applicants } = useApplicants(slug);
   const counts = useMemo(() => stageCounts(applicants, project.stages), [applicants, project.stages]);
-  const week = useMemo(() => startedThisWeek(applicants.filter((a) => !a.isTest).map((a) => a.createdAt), MOCK_NOW), [applicants]);
+  const week = useMemo(() => startedThisWeek(applicants.filter((a) => !a.isTest).map((a) => a.createdAt), new Date()), [applicants]);
   const funnelUrl = `${FUNNEL_HOST}/a/${slug}`;
 
   return (

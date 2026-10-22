@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkWebhookAuth, signCalcomBody, verifyCalcomSignature } from "./signature";
 import { parseCalcomWebhook } from "./parse";
+import { WEBHOOK_MAX_AGE_MS, isReplay } from "./server";
 
 const body = JSON.stringify({ triggerEvent: "BOOKING_CREATED" });
 
@@ -17,9 +18,10 @@ describe("signature", () => {
     expect(verifyCalcomSignature(body, null, "s3cret")).toBe(false);
     expect(verifyCalcomSignature(body, "abc", "s3cret")).toBe(false);
   });
-  it("without a secret: rejects in production, allows elsewhere", () => {
+  it("without a secret: rejects in every environment", () => {
     expect(checkWebhookAuth(body, null, undefined, "production")).toMatchObject({ ok: false, status: 503 });
-    expect(checkWebhookAuth(body, null, undefined, "development")).toEqual({ ok: true });
+    expect(checkWebhookAuth(body, null, undefined, "development")).toMatchObject({ ok: false, status: 503 });
+    expect(checkWebhookAuth(body, null, undefined, "test")).toMatchObject({ ok: false, status: 503 });
   });
   it("with a secret: unsigned is 401", () => {
     expect(checkWebhookAuth(body, null, "s", "production")).toMatchObject({ ok: false, status: 401 });
@@ -51,5 +53,25 @@ describe("parseCalcomWebhook", () => {
     expect(parseCalcomWebhook({ triggerEvent: "PING" })).toEqual({ kind: "ignored", trigger: "PING" });
     expect(parseCalcomWebhook({ triggerEvent: "BOOKING_CREATED", payload: {} })).toEqual({ kind: "invalid" });
     expect(parseCalcomWebhook(null)).toEqual({ kind: "invalid" });
+  });
+});
+
+describe("isReplay", () => {
+  const now = new Date("2026-10-22T12:00:00Z");
+  it("accepts a fresh payload and one without a time", () => {
+    expect(isReplay(new Date(now.getTime() - 60_000), now)).toBe(false);
+    expect(isReplay(null, now)).toBe(false);
+  });
+  it("rejects an old payload and one from the far future", () => {
+    expect(isReplay(new Date(now.getTime() - WEBHOOK_MAX_AGE_MS - 1000), now)).toBe(true);
+    expect(isReplay(new Date(now.getTime() + 3_600_000), now)).toBe(true);
+  });
+  it("reads the sent time from the payload", () => {
+    const r = parseCalcomWebhook({
+      triggerEvent: "BOOKING_CREATED",
+      createdAt: "2026-10-22T11:59:00.000Z",
+      payload: { uid: "u", startTime: "2026-10-22T14:00:00Z", endTime: "2026-10-22T14:30:00Z" },
+    });
+    expect(r.kind === "booking" && r.sentAt?.toISOString()).toBe("2026-10-22T11:59:00.000Z");
   });
 });

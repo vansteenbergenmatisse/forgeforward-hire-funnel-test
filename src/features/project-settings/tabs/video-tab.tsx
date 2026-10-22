@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Camera, Clock, RotateCcw } from "lucide-react";
+import { VIDEO_PROMPT_MAX, countText } from "../logic/limits";
 import { VIDEO_LIMITS, estimateMegabytes, validateVideo, type VideoSettings } from "../logic/video";
 import type { SettingsApi } from "../use-settings";
 import { Card, TwoColumn } from "../ui/card";
@@ -36,6 +37,7 @@ export function VideoTab({ api }: { api: SettingsApi }) {
   function change(key: Key, value: string) {
     const next = { ...drafts, [key]: value };
     setDrafts(next);
+    setTouched((t) => ({ ...t, [key]: true }));
     const n = (v: string) => (v.trim() === "" ? NaN : Number(v));
     const candidate: VideoSettings = { prepSeconds: n(next.prepSeconds), maxRecordSeconds: n(next.maxRecordSeconds), retakesAllowed: n(next.retakesAllowed) };
     if (!validateVideo(candidate)[key]) api.update((d) => ({ ...d, project: { ...d.project, [key]: candidate[key] } }));
@@ -54,10 +56,14 @@ export function VideoTab({ api }: { api: SettingsApi }) {
               label="Prompt"
               rows={4}
               value={project.videoPrompt}
+              maxLength={VIDEO_PROMPT_MAX}
               error={promptError}
-              onChange={(e) => api.update((d) => ({ ...d, project: { ...d.project, videoPrompt: e.target.value } }))}
+              onChange={(e) => {
+                setPromptTouched(true);
+                api.update((d) => ({ ...d, project: { ...d.project, videoPrompt: e.target.value } }));
+              }}
               onBlur={() => setPromptTouched(true)}
-              hint="Applicants read this before they record."
+              hint={`Applicants read this before they record. ${countText(project.videoPrompt, VIDEO_PROMPT_MAX)}.`}
             />
             <div className="grid gap-4 sm:grid-cols-3">
               {FIELDS.map((f) => (

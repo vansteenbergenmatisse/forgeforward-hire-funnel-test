@@ -14,6 +14,11 @@ describe("filters", () => {
     expect(matchesSearch(maria, "+63 917")).toBe(true);
     expect(matchesSearch(maria, "zzz")).toBe(false);
   });
+  it("does not match phone numbers for names with digits or very short numbers", () => {
+    const maria = board.find((a) => a.firstName === "Maria")!;
+    expect(matchesSearch(maria, "maria5")).toBe(false);
+    expect(matchesSearch(maria, "9")).toBe(false);
+  });
   it("applies toggles", () => {
     expect(filterApplicants(board, { audioOnly: true }).every((a) => a.audioOnly)).toBe(true);
     expect(filterApplicants(board, { didTask: true }).every((a) => a.didTask)).toBe(true);
@@ -24,7 +29,16 @@ describe("filters", () => {
     expect(scored.length).toBeGreaterThan(0);
     expect(scored.every((a) => (a.score ?? 0) >= 4)).toBe(true);
     const ranged = filterApplicants(board, { from: "2026-10-20", to: "2026-10-21" });
-    expect(ranged.every((a) => a.createdAt.slice(0, 10) >= "2026-10-20")).toBe(true);
+    const lo = new Date(2026, 9, 20).getTime();
+    const hi = new Date(2026, 9, 22).getTime();
+    expect(ranged.every((a) => new Date(a.createdAt).getTime() >= lo && new Date(a.createdAt).getTime() < hi)).toBe(true);
+  });
+  it("reads the picked days as local days, both ends inclusive", () => {
+    const at = (d: Date) => ({ ...board[0], createdAt: d.toISOString() });
+    const lastMinute = at(new Date(2026, 9, 5, 23, 59));
+    const midnight = at(new Date(2026, 9, 5, 0, 0));
+    const nextDay = at(new Date(2026, 9, 6, 0, 0));
+    expect(filterApplicants([lastMinute, midnight, nextDay], { from: "2026-10-05", to: "2026-10-05" })).toEqual([lastMinute, midnight]);
   });
   it("hides test applicants", () => {
     const test = { ...board[0], id: "t", isTest: true };

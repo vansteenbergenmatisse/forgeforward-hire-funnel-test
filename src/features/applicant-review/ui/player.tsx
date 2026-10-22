@@ -54,6 +54,8 @@ function ActivePlayer({ media, name, autoPlay }: { media: MediaView; name: strin
             <a
               href={media.src}
               download
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-bold text-charcoal hover:bg-sand"
             >
               <Download className="size-4" aria-hidden />

@@ -6,6 +6,7 @@ describe("variables", () => {
   it("extracts in order without duplicates", () => expect(extractVariables("{a_b} x {first_name} {a_b}")).toEqual(["a_b", "first_name"]));
   it("finds unknown ones", () => expect(unknownVariables("Hi {first_name} {nickname}")).toEqual(["nickname"]));
   it("finds variables the sample cannot fill", () => expect(variablesWithoutSample("{first_name} {x}", SAMPLE_APPLICANT)).toEqual(["x"]));
+  it("flags a mis-cased variable as unknown", () => expect(unknownVariables("Hi {First_name} {first_name}")).toEqual(["First_name"]));
   it("suggests WhatsApp order", () => expect(suggestWaVariables("{cal_link} {first_name} {oops}")).toEqual(["cal_link", "first_name"]));
 });
 

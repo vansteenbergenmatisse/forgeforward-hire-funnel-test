@@ -1,9 +1,11 @@
 "use client";
 
-import { Check, Copy, Link2, Lock, MicOff, RefreshCw, TriangleAlert } from "lucide-react";
+import { Check, Copy, Link2, Lock, MicOff, RefreshCw, Share2, TriangleAlert } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { LinkField } from "@/components/forms";
 import { Button } from "@/components/ui";
 import { cn } from "@/shared/cn";
+import { canShare, copyText, shareLink } from "../../lib/copy-text";
 import type { DeviceKind } from "../device";
 import { FlowScreen, IconBadge } from "./flow-screen";
 
@@ -81,10 +83,10 @@ export function DeniedScreen({ device, onRetry }: { device: DeviceKind; onRetry:
   );
 }
 
-type MessageProps = { title: string; body: string; button: string; onClick: () => void; icon?: "mic" | "alert"; done?: boolean };
+type MessageProps = { title: string; body: string; button: string; onClick: () => void; icon?: "mic" | "alert"; done?: boolean; link?: string };
 
 /** No microphone, or a browser without MediaRecorder. */
-export function MessageScreen({ title, body, button, onClick, icon = "alert", done }: MessageProps) {
+export function MessageScreen({ title, body, button, onClick, icon = "alert", done, link }: MessageProps) {
   return (
     <FlowScreen
       label={title}
@@ -98,6 +100,12 @@ export function MessageScreen({ title, body, button, onClick, icon = "alert", do
         <IconBadge>{icon === "mic" ? <MicOff className="size-7" aria-hidden /> : <TriangleAlert className="size-7" aria-hidden />}</IconBadge>
         <h1 className="mt-[18px] text-[34px] leading-[0.98]">{title}</h1>
         <p className="mt-3 text-base leading-normal text-muted">{body}</p>
+        {link ? <LinkField value={link} label="Link to this page" className="mt-5" /> : null}
+        {link && canShare() ? (
+          <Button size="lg" variant="ghost" className="mt-2 h-12" icon={<Share2 className="size-5" aria-hidden />} onClick={() => void shareLink(link, "Forge Forward application")}>
+            Share link
+          </Button>
+        ) : null}
       </div>
     </FlowScreen>
   );
@@ -109,6 +117,7 @@ export function HandoffScreen({ getLink, onTryAgain }: HandoffProps) {
   const [link, setLink] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -122,12 +131,9 @@ export function HandoffScreen({ getLink, onTryAgain }: HandoffProps) {
 
   async function copy() {
     if (!link) return;
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
+    const ok = await copyText(link);
+    setCopied(ok);
+    setCopyFailed(!ok);
   }
 
   return (
@@ -138,6 +144,11 @@ export function HandoffScreen({ getLink, onTryAgain }: HandoffProps) {
           <Button size="lg" className={CTA} disabled={!link} icon={copied ? <Check className="size-5" aria-hidden /> : <Copy className="size-5" aria-hidden />} onClick={copy}>
             {copied ? "Link copied" : "Copy link"}
           </Button>
+          {link && canShare() ? (
+            <Button size="lg" variant="secondary" className="h-12" icon={<Share2 className="size-5" aria-hidden />} onClick={() => void shareLink(link, "Forge Forward application")}>
+              Share link
+            </Button>
+          ) : null}
           <Button size="lg" variant="ghost" className="h-12" onClick={onTryAgain}>Try the camera again</Button>
         </>
       }
@@ -148,10 +159,17 @@ export function HandoffScreen({ getLink, onTryAgain }: HandoffProps) {
         </IconBadge>
         <h1 className="mt-[18px] text-[34px] leading-[0.98]">Finish in your browser</h1>
         <p className="mt-3 text-base leading-normal text-muted">This app blocks your camera. Copy this link and open it in Chrome or Safari to finish.</p>
-        <div className="mt-6 flex w-full items-center gap-2.5 rounded-xl border border-line-strong bg-sand px-3.5 py-3 text-left text-sm font-semibold" data-testid="handoff-link">
-          <Link2 className="size-4 flex-none text-muted" aria-hidden />
-          <span className="min-w-0 flex-1 truncate">{failed ? "We could not make a link. Try again." : (link ?? "Making your link...")}</span>
+        <div className="mt-6 w-full" data-testid="handoff-link">
+          {link ? (
+            <LinkField value={link} label="Your link" />
+          ) : (
+            <div className="flex w-full items-center gap-2.5 rounded-xl border border-line-strong bg-sand px-3.5 py-3 text-left text-sm font-semibold">
+              <Link2 className="size-4 flex-none text-muted" aria-hidden />
+              <span className="min-w-0 flex-1">{failed ? "We could not make a link. Try again." : "Making your link..."}</span>
+            </div>
+          )}
         </div>
+        {copyFailed ? <p role="status" className="mt-3 text-sm font-semibold text-signal-deep">Could not copy. Press and hold the link above to copy it.</p> : null}
         <p className="mt-3 flex items-center gap-2 text-sm text-muted">
           <Check className="size-4 flex-none text-ok" aria-hidden />
           Your details are saved. The link works once, for 24 hours.

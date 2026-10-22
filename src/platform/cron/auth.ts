@@ -1,8 +1,10 @@
 import { timingSafeEqual } from "node:crypto";
 
+export const MIN_CRON_SECRET_LENGTH = 32;
+
 /** True when the header is exactly `Bearer <secret>`. Constant-time compare. Never true without a secret. */
 export function isValidCronAuth(header: string | null | undefined, secret: string | undefined): boolean {
-  if (!secret || secret.length < 16 || !header) return false;
+  if (!secret || secret.length < MIN_CRON_SECRET_LENGTH || !header) return false;
   const expected = Buffer.from(`Bearer ${secret}`);
   const given = Buffer.from(header);
   if (given.length !== expected.length) {

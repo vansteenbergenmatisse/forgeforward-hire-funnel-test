@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { AdminShell, PageHeader } from "@/components/layout";
-import { Button } from "@/components/ui";
+import { Banner, Button } from "@/components/ui";
 import { useApplicants } from "@/features/applicants";
 import { useSystemAlerts } from "@/features/backups";
 import { useProjects } from "../store";
@@ -17,19 +17,21 @@ import { UnmatchedBookings } from "./unmatched-bookings";
 export function ProjectsHome() {
   const router = useRouter();
   const { state, actions } = useProjects();
-  const { applicants, actions: applicantActions } = useApplicants();
+  const { applicants, actions: applicantActions, error: applicantsError, truncated: applicantsTruncated, reload: reloadApplicants } = useApplicants();
   const [creating, setCreating] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tileRef = useRef<HTMLButtonElement>(null);
   const first = state.projects[0]?.def.name;
   const { alerts: activeAlerts, resolve: resolveAlert } = useSystemAlerts();
 
-  // Saves the booking on the applicant (moves the card on the server), then marks the row linked.
-  function linkBooking(bookingId: string, applicantId: string) {
+  // Saves the booking on the applicant (moves the card on the server). The row is marked linked only after the server agreed.
+  async function linkBooking(bookingId: string, applicantId: string): Promise<boolean> {
     const booking = state.bookings.find((b) => b.id === bookingId);
-    if (!booking) return;
-    applicantActions.linkBooking(applicantId, { id: booking.id, start: booking.start, title: booking.title });
-    actions.linkBooking(bookingId, applicantId);
+    if (!booking) return false;
+    const ok = await applicantActions.linkBooking(applicantId, { id: booking.id, start: booking.start, title: booking.title });
+    if (ok) actions.linkBooking(bookingId, applicantId);
+    else await actions.refreshBookings();
+    return ok;
   }
 
   function open(from: HTMLButtonElement | null) {
@@ -48,6 +50,20 @@ export function ProjectsHome() {
         }
       />
       <main className="flex flex-col gap-[18px] px-7 py-[22px]">
+        {applicantsError && (
+          <Banner
+            action={
+              <Button variant="secondary" size="sm" onClick={reloadApplicants}>
+                Try again
+              </Button>
+            }
+          >
+            {applicantsError === "session" ? "Your session ended. Open your admin link again to sign in." : "Could not load the applicant numbers. Check your connection."}
+          </Banner>
+        )}
+        {applicantsTruncated && (
+          <Banner tone="warning">There are more applicants than this screen can load, so the numbers below only count the newest ones.</Banner>
+        )}
         {activeAlerts.map((a) => (
           <AlertBanner key={a.id} alert={a} onResolve={a.id.startsWith("errors:") ? () => void resolveAlert(a.id) : undefined} />
         ))}

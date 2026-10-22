@@ -86,7 +86,7 @@ export function phaseReducer(s: PhaseState, e: PhaseEvent): PhaseState {
       return s.phase === "countdown" ? { ...s, phase: "recording", notice: null } : s;
     case "RECORDING_ENDED": {
       if (s.phase !== "recording") return s;
-      if (e.hidden) return toPrep(s, NOTICE_HIDDEN);
+      if (e.hidden || e.bytes <= 0) return toPrep(s, NOTICE_HIDDEN); // an empty file is a recording that stopped
       if (e.seconds < MIN_SECONDS) return toPrep(s, NOTICE_SHORT);
       if (e.bytes > MAX_BLOB_BYTES) return toPrep(s, NOTICE_BIG);
       return { ...s, phase: "review", notice: null };

@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { Harness } from "./harness";
 
-// Dev only test bench for the video flow. 404s in production.
+// Dev only test bench for the video flow. 404s in production unless ENABLE_DEV_ROUTES=1 (end-to-end runs on a production build).
 export default async function Page({ searchParams }: PageProps<"/dev/video-flow">) {
-  if (process.env.NODE_ENV === "production") notFound();
+  if (process.env.NODE_ENV === "production" && process.env.ENABLE_DEV_ROUTES !== "1") notFound();
   const q = await searchParams;
   const one = (k: string) => (Array.isArray(q[k]) ? q[k][0] : q[k]);
   return (

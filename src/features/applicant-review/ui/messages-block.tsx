@@ -9,7 +9,8 @@ import { Section } from "./section";
 
 const ICON = { whatsapp: MessageCircle, sms: MessageSquare, email: Mail } as const;
 
-export function MessagesBlock({ a, onSend }: { a: ApplicantView; onSend: (c: Channel) => void }) {
+/** `loading` = the messages are still being read, so sending waits (the WhatsApp window depends on them). */
+export function MessagesBlock({ a, onSend, loading = false }: { a: ApplicantView; onSend: (c: Channel) => void; loading?: boolean }) {
   const channels: Channel[] = a.whatsappOk ? ["whatsapp", "sms", "email"] : ["sms", "email"];
   const rows = [...a.messages].sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime());
   return (
@@ -18,13 +19,15 @@ export function MessagesBlock({ a, onSend }: { a: ApplicantView; onSend: (c: Cha
         {channels.map((c) => {
           const Icon = ICON[c];
           return (
-            <Button key={c} variant="secondary" size="md" icon={<Icon className="size-4" aria-hidden />} onClick={() => onSend(c)}>
+            <Button key={c} variant="secondary" size="md" icon={<Icon className="size-4" aria-hidden />} disabled={loading} onClick={() => onSend(c)}>
               {CHANNEL_LABEL[c]}
             </Button>
           );
         })}
       </div>
-      {rows.length === 0 ? (
+      {loading ? (
+        <p className="mt-4 text-sm text-muted" role="status">Loading messages...</p>
+      ) : rows.length === 0 ? (
         <p className="mt-4 text-sm text-muted">No messages yet. Pick a channel to send the first one.</p>
       ) : (
         <ul className="mt-4 space-y-2.5">
@@ -39,7 +42,7 @@ export function MessagesBlock({ a, onSend }: { a: ApplicantView; onSend: (c: Cha
                 <time dateTime={m.at}>{formatStamp(m.at)}</time>
               </p>
               {m.subject && <p className="mt-1 text-sm font-bold text-charcoal">{m.subject}</p>}
-              <p className="mt-1 line-clamp-3 whitespace-pre-line text-sm text-charcoal">{m.body}</p>
+              <p className="mt-1 whitespace-pre-line break-words text-sm text-charcoal">{m.body}</p>
             </li>
           ))}
         </ul>

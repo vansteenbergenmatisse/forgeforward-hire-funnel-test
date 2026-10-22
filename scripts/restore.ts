@@ -6,7 +6,6 @@ import { restoreGzipped, sameDatabase, withDatabase } from "./lib/pg-tools";
 
 config({ path: [".env.local", ".env.development.local", ".env"], quiet: true });
 process.env.DATABASE_URL ||= process.env.DATABASE_URL_UNPOOLED;
-process.env.ADMIN_KEY ||= "restore-script-does-not-use-this-key-000000";
 
 /*
  * Usage

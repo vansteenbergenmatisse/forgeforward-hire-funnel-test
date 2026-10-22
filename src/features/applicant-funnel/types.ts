@@ -26,7 +26,16 @@ export type UploadUrls = { key: string; putUrl: string; thumbKey?: string; thumb
 /** Boundary between the funnel UI and the server. `mock-api.ts` and `http-api.ts` implement it. */
 export interface FunnelApi {
   start(input: StartPayload, idempotencyKey: string): Promise<FunnelSession>;
-  getUploadUrls(args: { resumeToken: string; kind: "video" | "task"; mime: string; filename?: string; withThumb: boolean }): Promise<UploadUrls>;
+  getUploadUrls(args: {
+    resumeToken: string;
+    kind: "video" | "task";
+    mime: string;
+    filename?: string;
+    withThumb: boolean;
+    /** Size of the file about to be sent, so the server can sign for exactly that size. */
+    bytes: number;
+    thumbBytes?: number;
+  }): Promise<UploadUrls>;
   completeVideo(args: {
     resumeToken: string;
     key: string;

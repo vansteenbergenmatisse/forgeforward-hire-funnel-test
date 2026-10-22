@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { FlaskConical, LayoutGrid, Settings, ShieldCheck, Table2, UserX, Columns3 } from "lucide-react";
+import { FlaskConical, LayoutGrid, LogOut, Settings, ShieldCheck, Table2, UserX, Columns3 } from "lucide-react";
 import { Logo } from "@/components/brand";
 import { cn } from "@/shared/cn";
 
@@ -66,10 +66,18 @@ export function AdminShell({ active, project, children }: ShellProps) {
             Test console
           </NavLink>
         </div>
-        <p className="mt-auto flex gap-2 rounded-[10px] bg-white/5 p-3 text-xs leading-snug text-[#8e94a2]">
-          <ShieldCheck className="mt-px size-3.5 shrink-0" aria-hidden />
-          This device stays signed in for 90 days.
-        </p>
+        <div className="mt-auto rounded-[10px] bg-white/5 p-3 text-xs leading-snug text-[#8e94a2]">
+          <p className="flex gap-2">
+            <ShieldCheck className="mt-px size-3.5 shrink-0" aria-hidden />
+            This device stays signed in for 30 days.
+          </p>
+          <form action="/admin/logout" method="post" className="mt-2">
+            <button type="submit" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 font-bold text-side-text hover:bg-white/5 hover:text-white">
+              <LogOut className="size-3.5" aria-hidden />
+              Sign out
+            </button>
+          </form>
+        </div>
       </nav>
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileBar active={active} project={project} />

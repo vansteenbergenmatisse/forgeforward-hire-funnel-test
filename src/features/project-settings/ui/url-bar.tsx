@@ -57,7 +57,7 @@ export function UrlBar({
           onChange={(e) => setUrl(e.target.value)}
           placeholder={kind === "link" ? "https://example.com" : "https://example.com/picture.png"}
           aria-invalid={error ? true : undefined}
-          className={`${controlClass(!!error)} h-9 text-[14px]`}
+          className={`${controlClass(!!error)} h-9 text-[14px] pointer-coarse:text-base`}
         />
         {error && (
           <p role="alert" className="mt-1 text-[13px] font-semibold text-signal-deep">
@@ -70,7 +70,7 @@ export function UrlBar({
           <label htmlFor={`${id}-a`} className="sr-only">
             Image description
           </label>
-          <input id={`${id}-a`} value={alt} onChange={(e) => setAlt(e.target.value)} placeholder="Describe the image" className={`${controlClass(false)} h-9 text-[14px]`} />
+          <input id={`${id}-a`} value={alt} onChange={(e) => setAlt(e.target.value)} placeholder="Describe the image" className={`${controlClass(false)} h-9 text-[14px] pointer-coarse:text-base`} />
         </div>
       )}
       <Button size="md" variant="dark" onClick={submit} className="h-9">

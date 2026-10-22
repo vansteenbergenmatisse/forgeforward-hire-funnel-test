@@ -50,13 +50,14 @@ type WorksProps = {
   level: number;
   audioOnly: boolean;
   canSwitch: boolean;
+  notice?: string | null;
   onSwitch: () => void;
   onContinue: () => void;
   videoRef?: RefObject<HTMLVideoElement | null>;
 };
 
 /** A05 (camera works) and A06 (audio only). */
-export function WorksScreen({ stream, level, audioOnly, canSwitch, onSwitch, onContinue, videoRef }: WorksProps) {
+export function WorksScreen({ stream, level, audioOnly, canSwitch, notice, onSwitch, onContinue, videoRef }: WorksProps) {
   return (
     <FlowScreen
       label={audioOnly ? "Audio only" : "Camera works"}
@@ -67,7 +68,8 @@ export function WorksScreen({ stream, level, audioOnly, canSwitch, onSwitch, onC
         </Button>
       }
     >
-      <Preview stream={stream} audioOnly={audioOnly} videoRef={videoRef} className={audioOnly ? "w-full h-[300px] md:h-[260px]" : "w-full h-[380px] md:h-[330px]"}>
+      {notice ? <Notice>{notice}</Notice> : null}
+      <Preview stream={stream} audioOnly={audioOnly} videoRef={videoRef} className={audioOnly ? "w-full h-[min(300px,40dvh)] md:h-[260px]" : "w-full h-[min(380px,48dvh)] md:h-[330px]"}>
         <PreviewPill>
           {audioOnly ? <VideoOff className="size-3.5" aria-hidden /> : <span className="size-2 rounded-full border border-ok bg-ok/30" aria-hidden />}
           {audioOnly ? "Audio only" : "Camera on"}

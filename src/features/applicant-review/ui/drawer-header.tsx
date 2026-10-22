@@ -19,7 +19,7 @@ export function DrawerHeader({ a, stages, onMove, onClose }: Props) {
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <h2 id="drawer-title" className="flex flex-wrap items-center gap-2 text-2xl leading-tight">
-            {a.firstName} {a.lastName}
+            <span className="min-w-0 [overflow-wrap:anywhere]">{a.firstName} {a.lastName}</span>
             <span className="rounded-md bg-gray-tint px-1.5 py-0.5 font-sans text-xs font-bold tracking-wide text-gray" aria-label={`Country ${a.phoneCountry}`}>
               {a.phoneCountry}
             </span>

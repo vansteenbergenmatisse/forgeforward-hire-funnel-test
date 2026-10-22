@@ -7,6 +7,7 @@ import { Field, Select, TextArea, TextInput } from "@/components/forms";
 import type { ApplicantActions, ApplicantView } from "@/features/applicants";
 import type { Channel, TemplateDef } from "@/features/projects";
 import { getSendMode, savesOnServer } from "../send-mode";
+import { InvalidContactError, buildLinkUrl } from "../link-url";
 import { sendMessage } from "../send-message";
 import { sendViaApi } from "../send-client";
 import { validateOutgoing } from "../prepare-message";
@@ -35,22 +36,35 @@ export function SendMessagePanel({ applicant, project, templates, channel, actio
   const [apiError, setApiError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [sentMode, setSentMode] = useState(mode);
+  const [manualUrl, setManualUrl] = useState<string | null>(null);
   const [now] = useState(() => new Date());
 
-  if (sent) return <SendSuccess channel={channel} mode={sentMode} onBack={onBack} />;
+  if (sent) return <SendSuccess channel={channel} mode={sentMode} manualUrl={manualUrl} onBack={onBack} />;
 
   const win = channel === "whatsapp" ? whatsappWindow(applicant.messages, now) : null;
+  // What the admin sees in the box is what goes out, so only that text can block a send.
+  // A variable the template could not fill is a warning: the box then still holds the raw {token}, which blocks until it is edited.
   const missing = d.prepared && !d.prepared.ok ? d.prepared.message : null;
-  const textError = validateOutgoing(d.body);
-  const blocking = missing ?? textError;
+  const blocking = validateOutgoing(d.body);
   const target = channel === "email" ? applicant.email : applicant.phoneE164;
   const usedVars = d.prepared?.ok ? d.prepared.used : [];
 
-  function openUrl(url: string) {
+  /**
+   * Opens the wa.me, sms: or mailto: link. Must run straight from the click, before any await, or Safari and iOS block it.
+   * sms: and mailto: go through the page location so no empty tab is left behind. Returns false when the browser blocked it.
+   */
+  function openUrl(url: string): boolean {
     try {
-      window.open(url, "_blank", "noopener");
+      if (/^(sms|mailto):/i.test(url)) {
+        window.location.href = url;
+        return true;
+      }
+      const w = window.open(url, "_blank");
+      if (!w) return false;
+      w.opener = null;
+      return true;
     } catch {
-      /* popup blocked: the message is still saved */
+      return false;
     }
   }
 
@@ -82,23 +96,29 @@ export function SendMessagePanel({ applicant, project, templates, channel, actio
         templateName: d.template?.name,
         status: actual === "api" ? "sent" : "opened_link",
       });
-      if (actual === "link" && r.url) openUrl(r.url);
+      // The link came back after a network call, so a strict browser may refuse to open it. The success screen then offers it.
+      if (actual === "link" && r.url && !openUrl(r.url)) setManualUrl(r.url);
       setSentMode(actual);
       return setSent(true);
     }
+    // Link mode: open the app first, straight from the click, then save the row.
+    const input = { applicantId: applicant.id, channel, mode, phoneE164: applicant.phoneE164, email: applicant.email, subject: d.subject, body: d.body, templateName: d.template?.name };
+    let url: string;
+    try {
+      url = buildLinkUrl(input);
+    } catch (e) {
+      return setApiError(e instanceof InvalidContactError ? e.message : "Could not build the link.");
+    }
+    if (!openUrl(url)) return setApiError(`Your browser blocked the ${LABEL[channel]} window. Allow pop-ups for this site and press Send again.`);
     if (savesOnServer()) {
-      // Link mode: the server only saves the row, so the timeline survives a reload.
+      // The server only saves the row, so the timeline survives a reload.
       setBusy(true);
       setApiError(null);
       const saved = await sendViaApi({ ...apiInput(false), mode: "link" });
       setBusy(false);
-      if (!saved.ok) return setApiError(saved.error);
+      if (!saved.ok) return setApiError(`Your ${LABEL[channel]} app opened, but the message was not saved. ${saved.error}`);
     }
-    sendMessage(
-      actions,
-      { applicantId: applicant.id, channel, mode, phoneE164: applicant.phoneE164, email: applicant.email, subject: d.subject, body: d.body, templateName: d.template?.name },
-      openUrl,
-    );
+    sendMessage(actions, input, () => {});
     setSent(true);
   }
 
@@ -144,7 +164,7 @@ export function SendMessagePanel({ applicant, project, templates, channel, actio
 
         {d.channelTemplates.length > 0 ? (
           <Field label="Template" htmlFor="send-template">
-            <Select id="send-template" value={d.templateId} onChange={(e) => d.setTemplateId(e.target.value)} className="h-11 text-sm">
+            <Select id="send-template" value={d.templateId} onChange={(e) => d.setTemplateId(e.target.value)} className="h-11 text-sm pointer-coarse:text-base">
               {d.channelTemplates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </Select>
           </Field>
@@ -154,14 +174,20 @@ export function SendMessagePanel({ applicant, project, templates, channel, actio
 
         {channel === "email" && (
           <Field label="Subject" htmlFor="send-subject">
-            <TextInput id="send-subject" value={d.subject} onChange={(e) => d.setSubject(e.target.value)} className="h-11 text-sm" />
+            <TextInput id="send-subject" value={d.subject} onChange={(e) => d.setSubject(e.target.value)} className="h-11 text-sm pointer-coarse:text-base" />
           </Field>
         )}
 
         <Field label="Message" htmlFor="send-body" hint={usedVars.length ? `Variables filled: ${usedVars.join(", ")}` : undefined}>
-          <TextArea id="send-body" value={d.body} onChange={(e) => d.setBody(e.target.value)} className="min-h-40 text-sm leading-relaxed" />
+          <TextArea id="send-body" value={d.body} onChange={(e) => d.setBody(e.target.value)} className="min-h-40 text-sm pointer-coarse:text-base leading-relaxed" />
         </Field>
 
+        {missing && (
+          <p className="flex items-start gap-1.5 text-sm font-semibold text-amber">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            {missing}
+          </p>
+        )}
         {blocking && (
           <p role="alert" className="flex items-start gap-1.5 text-sm font-semibold text-signal-deep">
             <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />

@@ -12,7 +12,7 @@ type Props = {
   children?: ReactNode;
 };
 
-/** Mirrored live preview. Without a stream (or in audio only mode) it shows a placeholder. */
+/** Live preview, mirrored for selfie cameras. Without a stream (or in audio only mode) it shows a placeholder. */
 export function Preview({ stream, audioOnly, className, videoRef, children }: Props) {
   const inner = useRef<HTMLVideoElement | null>(null);
   const setRef = useCallback(
@@ -31,10 +31,13 @@ export function Preview({ stream, audioOnly, className, videoRef, children }: Pr
   }, [stream, audioOnly]);
 
   const showVideo = Boolean(stream) && !audioOnly;
+  // Selfie cameras mirror like a mirror. A rear camera must not, or text in front of it reads backwards.
+  const facing = stream?.getVideoTracks()[0]?.getSettings?.().facingMode;
+  const mirrored = facing !== "environment";
   return (
     <div className={cn("relative overflow-hidden rounded-2xl bg-[radial-gradient(120%_90%_at_50%_30%,var(--charcoal-2),var(--charcoal))]", className)} data-testid="preview">
       {showVideo ? (
-        <video ref={setRef} autoPlay muted playsInline className="absolute inset-0 size-full -scale-x-100 object-cover" />
+        <video ref={setRef} autoPlay muted playsInline className={cn("absolute inset-0 size-full object-cover", mirrored && "-scale-x-100")} />
       ) : audioOnly ? (
         <div className="absolute inset-0 flex items-center justify-center text-side-muted">
           <Mic className="size-1/4" strokeWidth={1.5} aria-hidden />

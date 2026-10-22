@@ -15,6 +15,13 @@
       "when": 1792671192152,
       "tag": "0001_minor_black_panther",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792684121771,
+      "tag": "0002_strong_colonel_america",
+      "breakpoints": true
     }
   ]
 }

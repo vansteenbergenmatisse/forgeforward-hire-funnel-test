@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { requireAdmin } from "@/features/admin-access";
 import { z } from "zod";
-import { isAdminRequest } from "@/features/applicants/server";
-import { runCheck } from "@/features/test-console/server";
+import { callbackOrigin, runCheck } from "@/features/test-console/server";
 import { CHECK_IDS } from "@/features/test-console";
 
 export const dynamic = "force-dynamic";
@@ -14,9 +14,10 @@ const body = z.object({
 
 // Runs ONE of the 13 checks. The browser calls them in order and carries `state` between calls.
 export async function POST(req: NextRequest) {
-  if (!isAdminRequest(req)) return new NextResponse("Not found", { status: 404 });
+  const denied = requireAdmin(req);
+  if (denied) return denied;
   const parsed = body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  const out = await runCheck(parsed.data.id, { origin: req.nextUrl.origin }, parsed.data.state);
+  const out = await runCheck(parsed.data.id, { origin: callbackOrigin(req.nextUrl.origin, process.env.APP_URL) }, parsed.data.state);
   return NextResponse.json(out, { headers: { "cache-control": "no-store" } });
 }

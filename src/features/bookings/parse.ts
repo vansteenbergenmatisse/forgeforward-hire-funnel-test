@@ -19,7 +19,7 @@ const body = z.object({
 });
 
 export type ParsedWebhook =
-  | { kind: "booking"; event: BookingEvent }
+  | { kind: "booking"; event: BookingEvent; /** When Cal.com sent it (payload createdAt), or null when missing or unreadable. */ sentAt: Date | null }
   | { kind: "ignored"; trigger: string }
   | { kind: "invalid" };
 
@@ -36,8 +36,10 @@ export function parseCalcomWebhook(raw: unknown): ParsedWebhook {
   const meta = p.metadata ?? {};
   const rawApplicantId = meta["applicant_id"];
   const email = p.attendees?.find((a) => a.email)?.email?.trim().toLowerCase() ?? null;
+  const sent = r.data.createdAt ? new Date(r.data.createdAt) : null;
   return {
     kind: "booking",
+    sentAt: sent && !Number.isNaN(sent.getTime()) ? sent : null,
     event: {
       trigger: r.data.triggerEvent,
       uid: p.uid,

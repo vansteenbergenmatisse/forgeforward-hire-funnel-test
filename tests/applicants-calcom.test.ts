@@ -81,7 +81,7 @@ describe.skipIf(!haveDb)("cal.com webhook and applicant commands", () => {
       .values([
         { projectId, name: "New", position: 0, role: "entry_new" },
         { projectId, name: "Interview booked", position: 1, role: "on_booking", isPositive: true },
-        { projectId, name: "Hired", position: 2 },
+        { projectId, name: "Hired", position: 2, isFinal: true },
         { projectId, name: "Trial", position: 3 },
       ])
       .returning();

@@ -5,6 +5,20 @@ export const PROJECT_SLUG = process.env.TEST_PROJECT_SLUG || "appointment-setter
 
 export type Ctx = { origin: string };
 
+/**
+ * Where the test console calls back to. These calls carry the admin cookie and the bypass header, so they go to the
+ * configured APP_URL and never to a host taken from the request. Without APP_URL (local development) the request origin is used.
+ */
+export function callbackOrigin(requestOrigin: string, appUrl: string | undefined): string {
+  const configured = appUrl?.trim();
+  if (!configured) return requestOrigin;
+  try {
+    return new URL(configured).origin;
+  } catch {
+    return requestOrigin;
+  }
+}
+
 export class CheckFailure extends Error {}
 
 export function adminKey(): string {

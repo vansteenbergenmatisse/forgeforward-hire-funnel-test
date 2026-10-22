@@ -65,6 +65,12 @@ describe("deriveAlerts", () => {
   it("returns nothing when all is well", () => {
     expect(deriveAlerts({ errors: [], backups: good, now })).toEqual([]);
   });
+  it("shows only the newest browser event types and sums up the rest", () => {
+    const errors = Array.from({ length: 6 }, (_, i) => ({ source: `client:t${i}`, message: "m", createdAt: hoursAgo(i + 1) }));
+    const alerts = deriveAlerts({ errors, backups: good, now });
+    expect(alerts.map((a) => a.id)).toEqual(["errors:client:t0", "errors:client:t1", "errors:client:t2", "errors:client:more"]);
+    expect(alerts[3].title).toBe("3 more unresolved browser errors.");
+  });
   it("groups unresolved errors by source with the latest message", () => {
     const alerts = deriveAlerts({
       errors: [

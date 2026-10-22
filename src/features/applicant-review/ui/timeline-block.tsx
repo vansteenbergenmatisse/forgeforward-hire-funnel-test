@@ -6,6 +6,9 @@ import { Section } from "./section";
 export function TimelineBlock({ a, stageName }: { a: ApplicantView; stageName: (id: string | null) => string }) {
   return (
     <Section title="Timeline">
+      {a.detail === false && (
+        <p className="text-sm text-muted" role="status">Loading the timeline...</p>
+      )}
       <ol className="space-y-3 border-l border-line-strong pl-4">
         {newestFirst(a.events).map((e) => (
           <li key={e.id} className="relative">

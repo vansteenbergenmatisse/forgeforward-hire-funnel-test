@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { FunnelShell } from "@/components/funnel";
 import { getFunnelApi, type MockSim } from "../api";
 import { flowReducer, initialFlowState, progressIndex } from "../state/flow-reducer";
-import { clearFlow, loadFlow, saveFlow } from "../state/persistence";
+import { loadFlow, saveFlow } from "../state/persistence";
 import { detectInAppBrowser } from "../lib/in-app";
 import type { FunnelProject } from "../types";
 import { DetailsForm } from "./details-form";
@@ -31,21 +31,39 @@ export function FunnelFlow({ project, tracking, sim, videoStub }: { project: Fun
       return;
     }
     if (saved) {
-      dispatch({ type: "hydrate", step: saved.step, session: saved.session, firstName: saved.firstName, inAppBrowser: saved.inAppBrowser });
+      // A saved task step means nothing when the project has no task (a handoff can land here).
+      const step = saved.step === "task" && !project.taskEnabled ? "done" : saved.step;
+      dispatch({ type: "hydrate", step, session: saved.session, firstName: saved.firstName, inAppBrowser: saved.inAppBrowser });
       return;
     }
     const inApp = detectInAppBrowser(navigator.userAgent);
     dispatch({ type: "hydrate", step: inApp ? "inapp" : "form", session: null, firstName: "", inAppBrowser: inApp });
-  }, [slug, project.status]);
+  }, [slug, project.status, project.taskEnabled]);
 
   useEffect(() => {
-    if (state.step === "done") clearFlow(slug);
-    else if (state.step === "form" || state.step === "video" || state.step === "task") {
+    // "done" is saved too, so a reload shows the thank you page instead of an empty form (and a duplicate application).
+    if (state.step === "form" || state.step === "video" || state.step === "task" || (state.step === "done" && state.session)) {
       saveFlow(slug, { step: state.step, session: state.session, firstName: state.firstName, inAppBrowser: state.inAppBrowser });
     }
   }, [slug, state]);
 
   const { step, session } = state;
+
+  // A new step is a new page: start at the top and put focus on its heading.
+  const lastStep = useRef(step);
+  useEffect(() => {
+    if (lastStep.current === step) return;
+    const from = lastStep.current;
+    lastStep.current = step;
+    if (from === "loading" || step === "loading") return;
+    window.scrollTo(0, 0);
+    const heading = document.querySelector<HTMLElement>("main h1");
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+    }
+  }, [step]);
+
   if (step === "closed") return <FunnelNotice title="Applications for this role are closed." />;
 
   return (

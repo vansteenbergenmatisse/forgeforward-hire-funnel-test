@@ -126,11 +126,11 @@ export function DetailsForm({
             )}
           </Wrap>
 
-          {/* Honeypot: people never see or fill this. */}
-          <div aria-hidden className="absolute -left-[9999px] top-auto size-px overflow-hidden">
+          {/* Honeypot: people never see or fill this. The name is not a real field name, so autofill skips it. */}
+          <div aria-hidden inert className="absolute -left-[9999px] top-auto size-px overflow-hidden">
             <label>
-              Website
-              <input type="text" name="website" tabIndex={-1} autoComplete="off" value={f.website} onChange={(ev) => f.setWebsite(ev.target.value)} />
+              Leave this empty
+              <input type="text" name="hp_note_9x" tabIndex={-1} autoComplete="off" data-lpignore="true" data-1p-ignore data-form-type="other" value={f.website} onChange={(ev) => f.setWebsite(ev.target.value)} />
             </label>
           </div>
         </div>

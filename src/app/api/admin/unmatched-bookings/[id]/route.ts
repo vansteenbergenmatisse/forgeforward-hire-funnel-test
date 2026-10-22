@@ -1,12 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { UUID_RE, dismissUnmatchedBooking, isAdminRequest } from "@/features/applicants/server";
+import { requireAdmin } from "@/features/admin-access";
+import { recordAudit } from "@/features/admin-access/server";
+import { PRIVATE_NO_STORE, UUID_RE, dismissUnmatchedBooking } from "@/features/applicants/server";
 
 export const dynamic = "force-dynamic";
 
 /** Dismiss an unmatched booking. */
 export async function DELETE(req: NextRequest, ctx: RouteContext<"/api/admin/unmatched-bookings/[id]">) {
-  if (!isAdminRequest(req)) return new NextResponse("Not found", { status: 404 });
+  const denied = requireAdmin(req);
+  if (denied) return denied;
   const { id } = await ctx.params;
   if (!UUID_RE.test(id) || !(await dismissUnmatchedBooking(id))) return new NextResponse("Not found", { status: 404 });
-  return NextResponse.json({ ok: true });
+  await recordAudit({ action: "unmatched_booking.dismiss", targetType: "unmatched_booking", targetId: id });
+  return NextResponse.json({ ok: true }, { headers: PRIVATE_NO_STORE });
 }

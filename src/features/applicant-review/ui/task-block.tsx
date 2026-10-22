@@ -13,7 +13,7 @@ export function TaskBlock({ a }: { a: ApplicantView }) {
         <p className="text-sm text-muted">{a.didTask ? "No task content saved." : "Did not do the task."}</p>
       ) : (
         <div className="space-y-3">
-          {a.taskText && <blockquote className="rounded-lg bg-sand px-4 py-3 text-base leading-relaxed text-charcoal">{a.taskText}</blockquote>}
+          {a.taskText && <blockquote className="whitespace-pre-wrap break-words rounded-lg bg-sand px-4 py-3 text-base leading-relaxed text-charcoal">{a.taskText}</blockquote>}
           {a.taskLink && (
             <p className="text-sm">
               {link ? (
@@ -30,6 +30,8 @@ export function TaskBlock({ a }: { a: ApplicantView }) {
             <a
               href={a.taskFile.url}
               download={a.taskFile.name}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex h-10 items-center gap-2 rounded-lg border border-line-strong bg-white px-3 text-sm font-bold text-charcoal hover:bg-sand"
             >
               <Download className="size-4" aria-hidden />

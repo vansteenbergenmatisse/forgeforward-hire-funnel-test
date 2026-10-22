@@ -1,8 +1,13 @@
-const IN_APP_PATTERN = /FBAN|FBAV|Instagram|TikTok|Bytedance|LinkedInApp|Line\//i;
+const IN_APP_PATTERN =
+  /FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|Bytedance|LinkedInApp|Line\/|Snapchat|Pinterest|MicroMessenger|Twitter|Messenger|GSA\/|;\s?wv\)/i;
 
-/** True when the user agent belongs to a social app's built-in browser. */
+/**
+ * True when the user agent belongs to a social app's built-in browser.
+ * Also catches generic WebViews: Android adds "wv" to them, and iOS WebViews leave out "Safari/".
+ */
 export function detectInAppBrowser(userAgent: string): boolean {
-  return IN_APP_PATTERN.test(userAgent);
+  if (IN_APP_PATTERN.test(userAgent)) return true;
+  return /\b(iPhone|iPad|iPod)\b/.test(userAgent) && /AppleWebKit/i.test(userAgent) && !/Safari\//i.test(userAgent);
 }
 
 export function isAndroid(userAgent: string): boolean {

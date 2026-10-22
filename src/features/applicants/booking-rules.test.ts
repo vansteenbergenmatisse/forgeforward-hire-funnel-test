@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { bookingTargetStage, isLockedStageName, nextBooking, type BookingEvent, type StageLite } from "./booking-rules";
 
 const stages: StageLite[] = [
-  { id: "new", name: "New", role: "entry_new" },
-  { id: "booked", name: "Interview booked", role: "on_booking" },
-  { id: "hired", name: "Hired", role: null },
-  { id: "rej", name: "Rejected", role: null },
-  { id: "trial", name: "Trial", role: null },
+  { id: "new", name: "New", role: "entry_new", isFinal: false },
+  { id: "booked", name: "Interview booked", role: "on_booking", isFinal: false },
+  { id: "hired", name: "Hired", role: null, isFinal: true },
+  { id: "rej", name: "Rejected", role: null, isFinal: true },
+  { id: "trial", name: "Trial", role: null, isFinal: false },
 ];
 const by = (id: string) => stages.find((s) => s.id === id) ?? null;
 
@@ -46,9 +46,9 @@ describe("bookingTargetStage", () => {
   it("does nothing when the project has no on_booking stage", () => {
     expect(bookingTargetStage("BOOKING_CREATED", by("new"), stages.filter((s) => s.role !== "on_booking"))).toBeNull();
   });
-  it("matches locked names case-insensitively", () => {
-    expect(isLockedStageName(" HIRED ")).toBe(true);
-    expect(isLockedStageName("Trial")).toBe(false);
+  it("locks stages flagged final", () => {
+    expect(isLockedStageName({ isFinal: true })).toBe(true);
+    expect(isLockedStageName({ isFinal: false })).toBe(false);
   });
 });
 

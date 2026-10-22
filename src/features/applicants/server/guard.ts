@@ -7,3 +7,6 @@ export function isAdminRequest(req: NextRequest): boolean {
 }
 
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Admin answers hold applicant details. Browsers and shared caches must not keep them. */
+export const PRIVATE_NO_STORE = { "cache-control": "private, no-store" } as const;

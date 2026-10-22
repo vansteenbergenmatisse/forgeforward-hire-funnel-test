@@ -31,15 +31,24 @@ export async function findApplicantForBooking(ev: BookingEvent): Promise<string 
     if (r) return r.id;
   }
   if (ev.attendeeEmail) {
-    const [r] = await db()
-      .select({ id: applicants.id })
+    const rows = await db()
+      .select({ id: applicants.id, projectId: applicants.projectId })
       .from(applicants)
       .where(sql`lower(${applicants.email}) = ${ev.attendeeEmail.toLowerCase()}`)
       .orderBy(desc(applicants.createdAt))
-      .limit(1);
-    if (r) return r.id;
+      .limit(50);
+    return pickByEmail(rows);
   }
   return null;
+}
+
+/**
+ * Email match for a booking without a usable applicant id. Rows are newest first. When the same email applied to more
+ * than one project we cannot tell which role the booking is for, so it stays unmatched for a person to link.
+ */
+export function pickByEmail(rows: { id: string; projectId: string }[]): string | null {
+  if (rows.length === 0) return null;
+  return new Set(rows.map((r) => r.projectId)).size === 1 ? rows[0].id : null;
 }
 
 export type ApplyResult = { applied: boolean; movedTo: string | null };
@@ -53,7 +62,7 @@ export async function applyBookingEvent(applicantId: string, ev: BookingEvent, n
     if (!booking) return { applied: false, movedTo: null };
 
     const projectStages: StageLite[] = await tx
-      .select({ id: stages.id, name: stages.name, role: stages.role })
+      .select({ id: stages.id, name: stages.name, role: stages.role, isFinal: stages.isFinal })
       .from(stages)
       .where(eq(stages.projectId, row.projectId));
     const current = projectStages.find((s) => s.id === row.stageId) ?? null;

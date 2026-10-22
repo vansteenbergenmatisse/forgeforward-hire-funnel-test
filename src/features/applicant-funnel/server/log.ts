@@ -1,9 +1,20 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, tables } from "@/platform/db";
+import { recordSystemError } from "@/platform/logging/system-errors";
+
+/**
+ * The funnel client does not call `api.log` today, so there are no exact event names to list. Only these
+ * families are accepted; a new client event must start with one of them.
+ */
+export const LOG_TYPE_PREFIXES = ["video.", "upload.", "camera.", "recorder.", "network.", "form.", "task.", "client."] as const;
+export const isKnownLogType = (t: string) => LOG_TYPE_PREFIXES.some((p) => t.startsWith(p));
 
 export const logSchema = z.object({
-  type: z.string().min(1).max(80),
+  type: z
+    .string()
+    .regex(/^[A-Za-z0-9_.-]{1,60}$/)
+    .refine(isKnownLogType, "Unknown event type"),
   data: z.record(z.string(), z.unknown()).default({}),
   resumeToken: z.string().max(200).optional(),
 });
@@ -22,5 +33,6 @@ export async function logClientEvent(input: z.output<typeof logSchema>) {
   }
   const json = JSON.stringify(input.data);
   const data = json.length > MAX_DATA_CHARS ? { truncated: true } : input.data;
-  await db().insert(tables.systemErrors).values({ source: `client:${input.type}`, message: input.type, data, applicantId });
+  // Repeats of the same open event are merged, so a loop of calls cannot stack rows or alerts.
+  await recordSystemError({ source: `client:${input.type}`, message: input.type, data, applicantId });
 }

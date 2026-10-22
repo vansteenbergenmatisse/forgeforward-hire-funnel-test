@@ -11,7 +11,8 @@ import { ModalDialog } from "./modal-dialog";
 type Props = {
   bookings: UnmatchedBooking[];
   applicants: ApplicantView[];
-  onLink: (bookingId: string, applicantId: string) => void;
+  /** Resolves true when the server linked the booking. */
+  onLink: (bookingId: string, applicantId: string) => Promise<boolean>;
   onDismiss: (bookingId: string) => void;
 };
 
@@ -20,7 +21,7 @@ export function UnmatchedBookings({ bookings, applicants, onLink, onDismiss }: P
   const linked = bookings.filter((b) => b.linkedApplicantId);
   const [picking, setPicking] = useState<UnmatchedBooking | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<{ text: string; ok: boolean } | null>(null);
 
   if (open.length === 0 && !notice && linked.length === 0) return null;
 
@@ -33,8 +34,11 @@ export function UnmatchedBookings({ bookings, applicants, onLink, onDismiss }: P
         <Badge tone="amber">{open.length}</Badge>
       </div>
       <p className="mb-3 mt-1 text-[13px] text-muted">Cal.com sent a booking we could not match to an applicant.</p>
-      <p role="status" className={notice ? "mb-3 rounded-lg bg-ok-tint px-3 py-2 text-[13px] font-semibold text-ok" : "sr-only"}>
-        {notice}
+      <p
+        role="status"
+        className={notice ? (notice.ok ? "mb-3 rounded-lg bg-ok-tint px-3 py-2 text-[13px] font-semibold text-ok" : "mb-3 rounded-lg bg-signal-tint px-3 py-2 text-[13px] font-semibold text-signal-deep") : "sr-only"}
+      >
+        {notice?.text}
       </p>
       {open.length === 0 && <p className="text-sm text-muted">Nothing to match right now.</p>}
       <ul className="flex flex-col gap-2">
@@ -64,7 +68,7 @@ export function UnmatchedBookings({ bookings, applicants, onLink, onDismiss }: P
               icon={<X className="size-4" aria-hidden />}
               onClick={() => {
                 onDismiss(b.id);
-                setNotice(`Dismissed the booking from ${b.email}.`);
+                setNotice({ text: `Dismissed the booking from ${b.email}.`, ok: true });
               }}
             >
               Dismiss
@@ -78,9 +82,13 @@ export function UnmatchedBookings({ bookings, applicants, onLink, onDismiss }: P
             booking={picking}
             applicants={applicants}
             onCancel={() => setPicking(null)}
-            onConfirm={(applicantId, label) => {
-              onLink(picking.id, applicantId);
-              setNotice(`Linked ${picking.email} to ${label}.`);
+            onConfirm={async (applicantId, label) => {
+              const ok = await onLink(picking.id, applicantId);
+              setNotice(
+                ok
+                  ? { text: `Linked ${picking.email} to ${label}.`, ok: true }
+                  : { text: `Could not link ${picking.email} to ${label}. It may already be linked. The list was refreshed.`, ok: false },
+              );
               setPicking(null);
             }}
           />
@@ -99,18 +107,22 @@ function LinkForm({
   booking: UnmatchedBooking;
   applicants: ApplicantView[];
   onCancel: () => void;
-  onConfirm: (applicantId: string, label: string) => void;
+  onConfirm: (applicantId: string, label: string) => Promise<void>;
 }) {
   const uid = useId();
   const sorted = [...applicants].filter((a) => !a.isTest).sort((a, b) => a.firstName.localeCompare(b.firstName));
   const [id, setId] = useState("");
+  const [busy, setBusy] = useState(false);
   return (
     <form
       className="flex flex-col gap-4"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
         const a = sorted.find((x) => x.id === id);
-        if (a) onConfirm(a.id, `${a.firstName} ${a.lastName}`);
+        if (!a || busy) return;
+        setBusy(true);
+        await onConfirm(a.id, `${a.firstName} ${a.lastName}`);
+        setBusy(false);
       }}
     >
       <p className="text-sm text-muted">
@@ -130,7 +142,7 @@ function LinkForm({
         <Button variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={!id}>
+        <Button type="submit" disabled={!id || busy}>
           Link booking
         </Button>
       </div>

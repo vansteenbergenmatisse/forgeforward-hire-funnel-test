@@ -60,6 +60,45 @@ export function ensureRecordsLoaded(force = false): Promise<void> {
   return loading;
 }
 
+const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * Reads every project again so a change made in another tab or on another device shows up. A project with edits that
+ * are not saved yet keeps its local copy (only the card counts update), so typing is never overwritten.
+ */
+export async function refreshRecords(): Promise<void> {
+  if (typeof window === "undefined" || state.status !== "ready" || loading) return;
+  let fresh: ProjectRecordDto[];
+  try {
+    fresh = await adminFetch<ProjectRecordDto[]>("GET", "/api/admin/projects");
+  } catch {
+    return; // stay on what we have; the next focus tries again
+  }
+  const records = fresh.map((dto) => {
+    const cur = state.records.find((r) => r.def.slug === dto.def.slug);
+    const base = baselines.get(dto.def.slug);
+    if (cur && base && !sameJson(bundleOf(cur), base)) return { ...cur, stageCounts: dto.stageCounts };
+    baselines.set(dto.def.slug, clone(bundleOf(dto)));
+    return dto;
+  });
+  for (const slug of [...baselines.keys()]) if (!fresh.some((r) => r.def.slug === slug)) baselines.delete(slug);
+  set({ ...state, records });
+}
+
+const REFRESH_MIN_GAP_MS = 15_000;
+let lastRefresh = 0;
+
+function refreshOnReturn() {
+  if (document.visibilityState !== "visible" || Date.now() - lastRefresh < REFRESH_MIN_GAP_MS) return;
+  lastRefresh = Date.now();
+  void refreshRecords();
+}
+
+if (typeof window !== "undefined") {
+  document.addEventListener("visibilitychange", refreshOnReturn);
+  window.addEventListener("focus", refreshOnReturn);
+}
+
 export const getRecord = (slug: string) => state.records.find((r) => r.def.slug === slug);
 /** Where a renamed slug went, so a screen that still holds the old one keeps working until it navigates. */
 export const slugAlias = (slug: string) => aliases.get(slug);

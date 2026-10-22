@@ -10,6 +10,7 @@ describe("thank-you text", () => {
   });
   it("fills both variables everywhere", () => {
     expect(renderThankYou("{first_name} {first_name} {reply_days}", "Sam", 5)).toBe("Sam Sam 5");
+    expect(renderThankYou("Hi {first_name}.", "$&$1", 5)).toBe("Hi $&$1.");
   });
   it("splits heading and body", () => {
     const r = splitThankYou(renderThankYou(DEFAULT_THANK_YOU, "Sam", 5));

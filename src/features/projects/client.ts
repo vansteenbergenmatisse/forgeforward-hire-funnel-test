@@ -13,6 +13,7 @@ export {
   getRecordsState,
   metaFor,
   moveStageCount,
+  refreshRecords,
   refreshStageCounts,
   renameCachedSlug,
   resetRecords,

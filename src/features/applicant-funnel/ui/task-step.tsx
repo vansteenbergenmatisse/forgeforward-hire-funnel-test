@@ -7,7 +7,7 @@ import { MainButton, StepBody, StepFooter, TextButton } from "@/components/funne
 import { FunnelApiError, SERVER_MESSAGE } from "../api/errors";
 import { uploadTaskFile } from "../api/upload-file";
 import { newIdempotencyKey } from "../lib/idempotency";
-import { TASK_TEXT_MAX, validateTask, type TaskErrors } from "../lib/task-validation";
+import { TASK_FILE_ACCEPT, TASK_TEXT_MAX, validateTask, type TaskErrors } from "../lib/task-validation";
 import type { FunnelApi, FunnelProject, FunnelSession } from "../types";
 import { SkipDialog } from "./skip-dialog";
 import { TaskBody } from "./task-body";
@@ -112,11 +112,11 @@ export function TaskStep({
               </Field>
             )}
             {allow.file && (
-              <Field label="File" htmlFor="t-file" optional error={errors.file} hint="Up to 25 MB.">
+              <Field label="File" htmlFor="t-file" optional error={errors.file} hint="PDF, Word, text, PNG, JPG or WebP. Up to 25 MB.">
                 <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-line-strong bg-white px-4 text-base font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-charcoal">
                   <Paperclip className="size-5 shrink-0 text-muted" aria-hidden />
                   <span className="min-w-0 truncate">{file ? file.name : "Choose a file"}</span>
-                  <input id="t-file" type="file" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                  <input id="t-file" type="file" accept={TASK_FILE_ACCEPT} className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
                 </label>
               </Field>
             )}

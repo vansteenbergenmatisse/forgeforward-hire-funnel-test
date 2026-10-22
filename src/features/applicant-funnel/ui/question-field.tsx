@@ -3,7 +3,9 @@
 import { AlertCircle } from "lucide-react";
 import type { QuestionDef } from "@/features/projects";
 import { Checkbox, Field, RadioCard, Segmented, TextArea, TextInput } from "@/components/forms";
+import { TextButton } from "@/components/funnel";
 import type { AnswerValue } from "../lib/form-validation";
+import { ANSWER_LIMITS } from "../schemas";
 
 /** One project question, rendered by type. */
 export function QuestionField({
@@ -29,20 +31,17 @@ export function QuestionField({
     return (
       <Field label={q.label} htmlFor={id} hint={hint} error={error} optional={optional}>
         {q.type === "long_text" ? (
-          <TextArea id={id} value={text} error={!!error} onBlur={onBlur} onChange={(e) => onChange(e.target.value)} />
+          <TextArea id={id} value={text} maxLength={ANSWER_LIMITS.longText} error={!!error} onBlur={onBlur} onChange={(e) => onChange(e.target.value)} />
         ) : (
           <TextInput
             id={id}
             value={text}
             error={!!error}
+            maxLength={q.type === "number" ? 40 : ANSWER_LIMITS.shortText}
             inputMode={q.type === "number" ? "decimal" : undefined}
             onBlur={onBlur}
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (q.type !== "number") return onChange(raw);
-              const n = Number(raw);
-              onChange(raw.trim() === "" ? "" : Number.isNaN(n) ? raw : n);
-            }}
+            // Numbers stay as typed text (so "2." and "2,5" survive). They are parsed on submit.
+            onChange={(e) => onChange(e.target.value)}
           />
         )}
       </Field>
@@ -87,6 +86,11 @@ export function QuestionField({
             </Checkbox>
           ))}
         </div>
+      )}
+      {optional && (q.type === "single_choice" || q.type === "yes_no") && value !== undefined && (
+        <TextButton className="self-start" onClick={() => onChange(undefined)}>
+          Clear my answer
+        </TextButton>
       )}
       {error ? (
         <p role="alert" className="flex items-start gap-1.5 text-sm font-semibold text-signal-deep">

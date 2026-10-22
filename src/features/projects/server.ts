@@ -1,4 +1,5 @@
 // Server-only entrypoint of the projects feature: provisioning plus everything the admin API and the funnel read.
+export { readTaskContent } from "./sanitize-html";
 export { seedAppointmentSetter } from "./provision";
 export { listProjects, getProject, loadProjectBySlug } from "./backend/bundles";
 export { createProject } from "./backend/projects";

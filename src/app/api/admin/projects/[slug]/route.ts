@@ -1,7 +1,10 @@
 import { getProject, respond, schemas } from "@/features/projects/server";
+import { requireAdmin } from "@/features/admin-access";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, ctx: RouteContext<"/api/admin/projects/[slug]">) {
+export async function GET(req: Request, ctx: RouteContext<"/api/admin/projects/[slug]">) {
+  const denied = requireAdmin(req);
+  if (denied) return denied;
   return respond(async () => getProject(schemas.slugParam.parse((await ctx.params).slug)));
 }

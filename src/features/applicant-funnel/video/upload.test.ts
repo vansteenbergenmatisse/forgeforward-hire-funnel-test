@@ -7,7 +7,7 @@ vi.mock("./recording-store", () => ({
   loadTake: vi.fn(async () => null),
 }));
 
-import { runUpload } from "./run-upload";
+import { resetIssuedUrls, runUpload, URL_REUSE_MS } from "./run-upload";
 
 const take = { blob: new Blob(["x"], { type: "video/mp4" }), thumb: new Blob(["t"]), mime: "video/mp4", seconds: 31.4, audioOnly: false, retakeUsed: true };
 
@@ -43,5 +43,35 @@ describe("runUpload", () => {
     await runUpload(api, "tok", { ...take, audioOnly: true, mime: "audio/mp4" }, () => {}, { put, retry: { sleep: async () => {} } });
     expect(put).toHaveBeenCalledTimes(1);
     expect(api.completeVideo).toHaveBeenCalledWith(expect.objectContaining({ thumbKey: undefined, audioOnly: true }));
+  });
+});
+
+describe("runUpload url reuse", () => {
+  it("reuses signed urls for the same take on a manual retry, then asks again after they age", async () => {
+    resetIssuedUrls();
+    const api = makeApi();
+    const failing = vi.fn(async () => {
+      throw new Error("down");
+    });
+    let t = 1_000;
+    const deps = { retry: { sleep: async () => {} }, now: () => t };
+    await expect(runUpload(api, "tok-r", take, () => {}, { ...deps, put: failing })).rejects.toThrow("down");
+    await expect(runUpload(api, "tok-r", take, () => {}, { ...deps, put: failing })).rejects.toThrow("down");
+    expect(api.getUploadUrls).toHaveBeenCalledTimes(1);
+    t += URL_REUSE_MS + 1;
+    await runUpload(api, "tok-r", take, () => {}, { ...deps, put: vi.fn(async () => {}) });
+    expect(api.getUploadUrls).toHaveBeenCalledTimes(2);
+    expect(api.getUploadUrls).toHaveBeenCalledWith(expect.objectContaining({ bytes: take.blob.size }));
+  });
+  it("asks again when the take changed", async () => {
+    resetIssuedUrls();
+    const api = makeApi();
+    const put = vi.fn(async () => {
+      throw new Error("down");
+    });
+    const deps = { retry: { sleep: async () => {} }, put };
+    await expect(runUpload(api, "tok-c", take, () => {}, deps)).rejects.toThrow();
+    await expect(runUpload(api, "tok-c", { ...take, blob: new Blob(["xyz"], { type: "video/mp4" }) }, () => {}, deps)).rejects.toThrow();
+    expect(api.getUploadUrls).toHaveBeenCalledTimes(2);
   });
 });

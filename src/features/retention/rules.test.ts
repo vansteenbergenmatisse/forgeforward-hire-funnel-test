@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { daysUntilDeletion, isRetentionEligible, mediaKeys, retentionCutoff, type RetentionSubject } from "./rules";
+import { applicantFolders, daysUntilDeletion, isRetentionEligible, mediaKeys, retentionCutoff, type RetentionSubject } from "./rules";
 
 const now = new Date("2026-10-21T03:00:00Z");
 const daysAgo = (n: number) => new Date(now.getTime() - n * 86_400_000);
@@ -51,5 +51,12 @@ describe("daysUntilDeletion", () => {
   it("shows nothing for protected or already deleted cards", () => {
     expect(daysUntilDeletion({ ...s, stageIsPositive: true, createdAt: daysAgo(27) }, now)).toBeNull();
     expect(daysUntilDeletion({ ...s, videoDeletedAt: daysAgo(1) as unknown as null, createdAt: daysAgo(27) }, now)).toBeNull();
+  });
+});
+
+describe("applicantFolders", () => {
+  it("returns only folders whose last segment is the applicant id", () => {
+    const keys = ["test/videos/s/a1/1.webm", "test/thumbs/s/a1/1.jpg", "test/tasks/s/a1/x-cv.pdf", "videos/s/other/2.webm", "loose.webm"];
+    expect(applicantFolders("a1", keys).sort()).toEqual(["test/tasks/s/a1/", "test/thumbs/s/a1/", "test/videos/s/a1/"]);
   });
 });

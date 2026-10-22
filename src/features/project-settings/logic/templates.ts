@@ -57,7 +57,7 @@ export function suggestWaVariables(body: string): string[] {
 /** Fills what it can. `missing` lists variables with no value: a real send is blocked for them. */
 export function previewText(text: string, sample: Record<string, string | undefined>): { text: string; missing: string[] } {
   const missing = variablesWithoutSample(text, sample);
-  const filled = text.replace(/\{([a-z_]+)\}/g, (m, name: string) => (sample[name] ? (sample[name] as string) : m));
+  const filled = text.replace(/\{([A-Za-z_]+)\}/g, (m, name: string) => (sample[name] ? (sample[name] as string) : m));
   return { text: filled, missing };
 }
 

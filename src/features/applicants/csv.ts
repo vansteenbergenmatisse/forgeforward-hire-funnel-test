@@ -1,30 +1,48 @@
-import type { StageDef } from "@/features/projects";
+import type { QuestionDef, StageDef } from "@/features/projects";
 import { localTime } from "./local-time";
 import type { ApplicantView } from "./types";
 
-/** Quotes a cell when needed. Cells that start with = or @ get a leading apostrophe so spreadsheets do not run them. */
-export function escapeCsvCell(value: string | number | boolean | null | undefined): string {
+type Cell = string | number | boolean | null | undefined;
+
+/** A typed E.164 phone number may start with +. Nothing else is trusted to. */
+const PHONE_RE = /^\+\d{6,15}$/;
+
+/**
+ * Quotes a cell when needed. Text that a spreadsheet could read as a formula (first non-space character is
+ * = + - @, or the cell starts with a tab or line break) gets a leading apostrophe. Numbers are left alone.
+ * `trusted` skips the formula guard for values the code produced itself.
+ */
+export function escapeCsvCell(value: Cell, opts: { trusted?: boolean } = {}): string {
   let s = value === null || value === undefined ? "" : String(value);
-  if (/^[=@\t\r]/.test(s)) s = `'${s}`;
+  if (typeof value === "string" && !opts.trusted && /^[\t\r\n]|^\s*[=+\-@]/.test(s)) s = `'${s}`;
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-export function toCsv(rows: (string | number | boolean | null | undefined)[][]): string {
-  return rows.map((r) => r.map(escapeCsvCell).join(",")).join("\r\n");
+/** `phoneColumn` is the index of a column that may hold a plain +E.164 number. */
+export function toCsv(rows: Cell[][], opts: { phoneColumn?: number } = {}): string {
+  return rows
+    .map((r) => r.map((c, i) => escapeCsvCell(c, { trusted: i === opts.phoneColumn && typeof c === "string" && PHONE_RE.test(c) })).join(","))
+    .join("\r\n");
 }
 
-const HEADER = ["Name", "Email", "Phone", "Country", "Stage", "Years setting", "Did task", "Audio only", "Applied before", "Score", "Local time", "Applied", "Notes"];
+const PHONE_COLUMN = 2;
 
-/** One row per applicant, in the order given. `yearsQuestionId` picks the answer shown in the "Years setting" column. */
-export function buildApplicantsCsv(applicants: ApplicantView[], stages: StageDef[], yearsQuestionId: string, now: Date = new Date()): string {
+/** One row per applicant, in the order given. `question` is the answer shown in its own column, named after the question. */
+export function buildApplicantsCsv(
+  applicants: ApplicantView[],
+  stages: StageDef[],
+  question: Pick<QuestionDef, "id" | "label"> | null,
+  now: Date = new Date(),
+): string {
   const stageName = (id: string | null) => (id === null ? "Did not finish" : (stages.find((s) => s.id === id)?.name ?? ""));
+  const header = ["Name", "Email", "Phone", "Country", "Stage", ...(question ? [question.label] : []), "Did task", "Audio only", "Applied before", "Score", "Local time", "Applied", "Notes"];
   const rows = applicants.map((a) => [
     `${a.firstName} ${a.lastName}`,
     a.email,
     a.phoneE164,
     a.phoneCountry,
     stageName(a.stageId),
-    String(a.answers[yearsQuestionId]?.value ?? ""),
+    ...(question ? [answerCell(a.answers[question.id]?.value)] : []),
     a.didTask ? "Yes" : "No",
     a.audioOnly ? "Yes" : "No",
     a.appliedBefore ? "Yes" : "No",
@@ -33,7 +51,12 @@ export function buildApplicantsCsv(applicants: ApplicantView[], stages: StageDef
     a.createdAt.slice(0, 10),
     a.notes,
   ]);
-  return toCsv([HEADER, ...rows]);
+  return toCsv([header, ...rows], { phoneColumn: PHONE_COLUMN });
+}
+
+function answerCell(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  return Array.isArray(value) ? value.join(", ") : String(value);
 }
 
 /** Triggers a browser download. Browser only. */
@@ -45,5 +68,6 @@ export function downloadCsv(filename: string, csv: string): void {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  // Some browsers start the download after click() returns, so the URL must outlive it.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }

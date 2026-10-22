@@ -18,6 +18,8 @@ describe("cron auth", () => {
     expect(isValidCronAuth("Bearer undefined", undefined)).toBe(false);
     expect(isValidCronAuth("Bearer ", "")).toBe(false);
     expect(isValidCronAuth("Bearer short", "short")).toBe(false);
+    const weak = "w".repeat(31);
+    expect(isValidCronAuth(`Bearer ${weak}`, weak)).toBe(false);
   });
   it("returns 401 from rejectUnlessCron", () => {
     const prev = process.env.CRON_SECRET;

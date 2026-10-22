@@ -23,6 +23,19 @@ export function mediaKeys(s: Pick<RetentionSubject, "videoKey" | "thumbKey" | "t
   return [s.videoKey, s.thumbKey, s.taskFileKey].filter((k): k is string => Boolean(k));
 }
 
+/**
+ * R2 folders owned by one applicant, taken from their known keys. A folder counts only when its last segment is the
+ * applicant id, so a wrong key can never widen a delete to someone else's files.
+ */
+export function applicantFolders(applicantId: string, keys: string[]): string[] {
+  const folders = new Set<string>();
+  for (const key of keys) {
+    const folder = key.slice(0, key.lastIndexOf("/") + 1);
+    if (folder.endsWith(`/${applicantId}/`)) folders.add(folder);
+  }
+  return [...folders];
+}
+
 /** Older than 30 days, not in a positive stage, files not yet deleted. No stage counts as not positive. */
 export function isRetentionEligible(s: RetentionSubject, now: Date): boolean {
   if (s.videoDeletedAt) return false;

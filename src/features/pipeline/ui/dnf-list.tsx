@@ -77,7 +77,7 @@ export function DnfList({ applicants, stages, question, actions, onOpen }: Props
                   <td className="px-4 py-2">
                     <button type="button" data-card-id={a.id} onClick={() => onOpen(a.id)} className="flex items-center gap-3 rounded-md text-left font-bold text-charcoal focus-visible:outline-2 focus-visible:outline-charcoal">
                       <Thumbnail applicant={a} size="row" />
-                      {a.firstName} {a.lastName}
+                      <span className="max-w-[240px] truncate">{a.firstName} {a.lastName}</span>
                       <CountryChip code={a.phoneCountry} />
                     </button>
                   </td>

@@ -4,6 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export type MediaKind = "video" | "audio";
 
+/** Only a file the browser cannot decode marks the player as failed. */
+function isUnplayable(e: unknown): boolean {
+  return e instanceof DOMException && e.name === "NotSupportedError";
+}
+
 /** State and commands for one native media element. */
 export function useMedia(src: string, fallbackSeconds: number, kind: MediaKind) {
   const ref = useRef<HTMLVideoElement & HTMLAudioElement>(null);
@@ -26,8 +31,14 @@ export function useMedia(src: string, fallbackSeconds: number, kind: MediaKind) 
   const toggle = useCallback(() => {
     const el = ref.current;
     if (!el) return;
-    if (el.paused) void el.play().catch(() => setFailed(true));
-    else el.pause();
+    if (el.paused) {
+      void el.play().catch((e: unknown) => {
+        // AbortError (paused again at once) and NotAllowedError (autoplay policy) are not a broken file.
+        if (isUnplayable(e)) setFailed(true);
+      });
+    } else {
+      el.pause();
+    }
   }, []);
 
   const seek = useCallback((t: number) => {

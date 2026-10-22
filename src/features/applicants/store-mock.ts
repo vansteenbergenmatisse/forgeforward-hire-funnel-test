@@ -3,7 +3,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { buildMockApplicants } from "./mock";
 import { applyBookingLink, applyMessage, applyMove, applyPlace, patchApplicant } from "./mutations";
-import type { ApplicantActions, ApplicantView } from "./types";
+import type { ApplicantActions, ApplicantView, UseApplicantsResult } from "./types";
 
 const STORAGE_KEY = "forge-hire:applicants";
 const STORAGE_VERSION = 1;
@@ -75,20 +75,32 @@ export function resetMockStore(): void {
 const update = (id: string, fn: (a: ApplicantView) => ApplicantView) =>
   setState(getClientSnapshot().map((a) => (a.id === id ? fn(a) : a)));
 
+const noop = () => {};
+
 const actions: ApplicantActions = {
   moveToStage: (id, stageId) => update(id, (a) => applyMove(a, stageId)),
   placeOnBoard: (id, stageId) => update(id, (a) => applyPlace(a, stageId)),
   setScore: (id, score) => update(id, (a) => patchApplicant(a, { score })),
-  setNotes: (id, notes) => update(id, (a) => patchApplicant(a, { notes })),
+  setNotes: async (id, notes) => {
+    update(id, (a) => patchApplicant(a, { notes }));
+    return true;
+  },
   markRead: (id) => update(id, (a) => (a.unreadReply ? patchApplicant(a, { unreadReply: false }) : a)),
   addMessage: (id, message) => update(id, (a) => applyMessage(a, message)),
-  linkBooking: (id, booking) => update(id, (a) => applyBookingLink(a, booking)),
-  remove: (id) => setState(getClientSnapshot().filter((a) => a.id !== id)),
+  loadDetail: async () => {},
+  linkBooking: async (id, booking) => {
+    update(id, (a) => applyBookingLink(a, booking));
+    return true;
+  },
+  remove: async (id) => {
+    setState(getClientSnapshot().filter((a) => a.id !== id));
+    return null;
+  },
 };
 
 /** Applicants (all projects, or one project) plus the actions that change them. Re-renders on every change. */
-export function useMockApplicants(projectSlug?: string): { applicants: ApplicantView[]; actions: ApplicantActions; loading: boolean } {
+export function useMockApplicants(projectSlug?: string): UseApplicantsResult {
   const all = useSyncExternalStore(subscribe, getClientSnapshot, () => SERVER_SNAPSHOT);
   const applicants = useMemo(() => (projectSlug ? all.filter((a) => a.projectSlug === projectSlug) : all), [all, projectSlug]);
-  return { applicants, actions, loading: false };
+  return { applicants, actions, loading: false, error: null, truncated: false, reload: noop };
 }

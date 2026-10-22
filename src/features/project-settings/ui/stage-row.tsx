@@ -61,7 +61,7 @@ export function StageRow({
                 if (!validateStageName(stages, stage.id, e.target.value)) onRename(e.target.value.trim());
               }}
               onBlur={() => setTouched(true)}
-              className={cn("h-9 w-full rounded-lg border bg-white px-3 text-[14.5px] focus:border-charcoal focus:outline-none", error ? "border-signal bg-signal-tint/40" : "border-line-strong")}
+              className={cn("h-9 w-full rounded-lg border bg-white px-3 text-[14.5px] pointer-coarse:text-base focus:border-charcoal focus:outline-none", error ? "border-signal bg-signal-tint/40" : "border-line-strong")}
             />
             {error && (
               <p id={errorId} role="alert" className="mt-1 text-[13px] font-semibold text-signal-deep">
@@ -73,7 +73,7 @@ export function StageRow({
             aria-label={`Role for ${stage.name}`}
             value={stage.role ?? "none"}
             onChange={(e) => onRole(e.target.value === "none" ? null : (e.target.value as StageRole))}
-            className="h-9 rounded-lg border border-line-strong bg-white px-2.5 text-[13.5px] font-semibold focus:border-charcoal focus:outline-none"
+            className="h-9 rounded-lg border border-line-strong bg-white px-2.5 text-[13.5px] pointer-coarse:text-base font-semibold focus:border-charcoal focus:outline-none"
           >
             <option value="none" disabled={!!stage.role}>
               No role

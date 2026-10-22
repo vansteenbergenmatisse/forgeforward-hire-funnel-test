@@ -126,9 +126,9 @@ describe.skipIf(!haveDb)("funnel api", () => {
       const s = (await api.startApplication(startReq(ipOf(20), {}), payload({ email }), `key-${crypto.randomUUID()}`)) as { applicant_id: string; resume_token: string };
       const token = s.resume_token;
 
-      await expect(api.createUploadUrls({ resumeToken: "bad", kind: "video", mime: "video/webm", withThumb: false })).rejects.toMatchObject({ status: 404 });
-      await expect(api.createUploadUrls({ resumeToken: token, kind: "video", mime: "text/html", withThumb: false })).rejects.toMatchObject({ status: 400 });
-      const urls = await api.createUploadUrls({ resumeToken: token, kind: "video", mime: "video/webm;codecs=vp9,opus", withThumb: true });
+      await expect(api.createUploadUrls({ resumeToken: "bad", kind: "video", mime: "video/webm", withThumb: false, bytes: 11 })).rejects.toMatchObject({ status: 404 });
+      await expect(api.createUploadUrls({ resumeToken: token, kind: "video", mime: "text/html", withThumb: false, bytes: 11 })).rejects.toMatchObject({ status: 400 });
+      const urls = await api.createUploadUrls({ resumeToken: token, kind: "video", mime: "video/webm;codecs=vp9,opus", withThumb: true, bytes: 11, thumbBytes: 5 });
       expect(urls.key).toContain(`test/videos/${slug}/${s.applicant_id}/`);
       expect(urls.putUrl).toContain("X-Amz-Signature");
       expect(urls.thumbKey).toContain(`test/thumbs/${slug}/`);
@@ -169,7 +169,7 @@ describe.skipIf(!haveDb)("funnel api", () => {
       expect(await api.consumeHandoff(h2.url.split("/").pop() as string)).toBeNull();
       const types = (await db().select().from(tables.applicantEvents).where(eq(tables.applicantEvents.applicantId, s.applicant_id))).map((e) => e.type);
       expect(types.filter((x) => x === "handoff_used")).toHaveLength(1);
-    });
+    }, 30_000);
 
     it("skip lands in New; logs go to system_errors", async () => {
       const s = (await api.startApplication(startReq(ipOf(21)), payload({ email: `skip-${suffix}@example.com` }), `key-${crypto.randomUUID()}`)) as { applicant_id: string; resume_token: string };

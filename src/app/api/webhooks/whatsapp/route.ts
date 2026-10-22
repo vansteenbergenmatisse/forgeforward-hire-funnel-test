@@ -14,8 +14,10 @@ export function GET(req: NextRequest) {
 
 /** Delivery statuses and inbound replies. Signed with X-Hub-Signature-256. */
 export async function POST(req: NextRequest) {
+  const declared = Number(req.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_BODY) return new NextResponse("Too large", { status: 413 });
   const raw = await req.text();
-  if (raw.length > MAX_BODY) return new NextResponse("Too large", { status: 413 });
+  if (Buffer.byteLength(raw, "utf8") > MAX_BODY) return new NextResponse("Too large", { status: 413 });
   if (!verifySignature(raw, req.headers.get("x-hub-signature-256"), process.env.WA_APP_SECRET)) {
     return new NextResponse("Forbidden", { status: 403 });
   }

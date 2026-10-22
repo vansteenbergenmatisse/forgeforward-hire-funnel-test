@@ -26,7 +26,8 @@ export function MessagesTab({ api }: { api: SettingsApi }) {
   const sample: Record<string, string> = {
     ...SAMPLE_APPLICANT,
     project_name: project.name,
-    cal_link: buildCalLink({ calLink: project.calLink, firstName: "Sam", lastName: "Rivera", email: "sam@example.com", applicantId: "a_1042" }),
+    // No Cal.com link means a real send has nothing to put here, so the preview must warn about it too.
+    cal_link: project.calLink ? buildCalLink({ calLink: project.calLink, firstName: "Sam", lastName: "Rivera", email: "sam@example.com", applicantId: "a_1042" }) : "",
   };
 
   const patch = (id: string, p: Partial<TemplateDef>) => api.update((d) => ({ ...d, templates: d.templates.map((t) => (t.id === id ? { ...t, ...p } : t)) }));

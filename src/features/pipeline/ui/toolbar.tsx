@@ -34,7 +34,7 @@ export function Toolbar({ filters, onFilters, sortValue, sortOptions, onSort, su
           value={filters.search ?? ""}
           onChange={(e) => set({ search: e.target.value })}
           placeholder="Search name, email or phone"
-          className="h-10 w-full appearance-none rounded-[9px] border border-line-strong bg-white pl-3 pr-9 text-sm text-charcoal placeholder:text-placeholder focus-visible:outline-2 focus-visible:outline-charcoal [&::-webkit-search-cancel-button]:hidden"
+          className="h-10 w-full appearance-none rounded-[9px] border border-line-strong bg-white pl-3 pr-9 text-sm pointer-coarse:text-base text-charcoal placeholder:text-placeholder focus-visible:outline-2 focus-visible:outline-charcoal [&::-webkit-search-cancel-button]:hidden"
         />
         {filters.search ? (
           <button type="button" aria-label="Clear search" onClick={() => set({ search: "" })} className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:bg-sand focus-visible:outline-2 focus-visible:outline-charcoal">
@@ -63,7 +63,7 @@ export function Toolbar({ filters, onFilters, sortValue, sortOptions, onSort, su
             id="pipeline-sort"
             value={sortValue}
             onChange={(e) => onSort(e.target.value)}
-            className="h-[34px] w-[150px] appearance-none rounded-[9px] border border-line-strong bg-white pl-3 pr-8 text-sm text-charcoal focus-visible:outline-2 focus-visible:outline-charcoal"
+            className="h-[34px] w-[150px] appearance-none rounded-[9px] border border-line-strong bg-white pl-3 pr-8 text-sm pointer-coarse:text-base text-charcoal focus-visible:outline-2 focus-visible:outline-charcoal"
           >
             {sortOptions.map((o) => (
               <option key={o.value} value={o.value}>

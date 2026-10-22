@@ -26,7 +26,7 @@ export function ChoicesEditor({ rows, error, onChange, onBlur }: { rows: ChoiceR
                   value={r.value}
                   onChange={(e) => onChange(rows.map((x) => (x.id === r.id ? { ...x, value: e.target.value } : x)))}
                   onBlur={onBlur}
-                  className={`${controlClass(false)} h-9 text-[15px]`}
+                  className={`${controlClass(false)} h-9 text-[15px] pointer-coarse:text-base`}
                 />
                 <button
                   type="button"

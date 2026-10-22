@@ -24,7 +24,7 @@ describe("sanitizeTaskHtml", () => {
     );
   });
   it("keeps https images only", () => {
-    expect(sanitizeTaskHtml('<img src="https://x.com/a.png" alt="a">')).toBe('<img src="https://x.com/a.png" alt="a">');
+    expect(sanitizeTaskHtml('<img src="https://x.com/a.png" alt="a">')).toBe('<img src="https://x.com/a.png" alt="a" referrerpolicy="no-referrer">');
     expect(sanitizeTaskHtml('<img src="data:image/png;base64,AA">')).toBe("");
     expect(sanitizeTaskHtml('<img src="javascript:x">')).toBe("");
   });

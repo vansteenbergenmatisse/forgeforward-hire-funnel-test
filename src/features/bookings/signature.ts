@@ -17,19 +17,17 @@ export function verifyCalcomSignature(rawBody: string, header: string | null, se
 export type SecretCheck = { ok: true } | { ok: false; status: 401 | 503; reason: string };
 
 /**
- * Decides whether a webhook may be processed.
- * Secret unset: reject in production (503, logged by the caller), allow in development and tests.
+ * Decides whether a webhook may be processed. Fails closed in every environment: without a secret nothing is accepted
+ * (503), and a missing or wrong signature is 401. `reason` is for the server log only, never for the response body.
+ * `nodeEnv` is kept for callers that pass it; it no longer changes the result.
  */
 export function checkWebhookAuth(
   rawBody: string,
   header: string | null,
   secret: string | undefined,
-  nodeEnv: string | undefined,
+  nodeEnv?: string | undefined,
 ): SecretCheck {
-  if (!secret) {
-    return nodeEnv === "production"
-      ? { ok: false, status: 503, reason: "CALCOM_WEBHOOK_SECRET is not set" }
-      : { ok: true };
-  }
+  void nodeEnv;
+  if (!secret) return { ok: false, status: 503, reason: "CALCOM_WEBHOOK_SECRET is not set" };
   return verifyCalcomSignature(rawBody, header, secret) ? { ok: true } : { ok: false, status: 401, reason: "bad signature" };
 }

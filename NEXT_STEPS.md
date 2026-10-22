@@ -91,6 +91,25 @@ Built, tested and committed (2026-10-21): Phase 1, Phase 2 funnel API, Phase 3 a
 - [x] Phase 4: `/api/cron/retention` and `/api/cron/integrity` (bearer `CRON_SECRET`, vercel.json crons), `scripts/backup.ts`, `scripts/restore.ts` (restore proven into a throwaway database), `.github/workflows/backup.yml`, banners from `/api/admin/system-alerts`, real 13-check test console under `/api/admin/test/*` (`NEXT_PUBLIC_TEST_CONSOLE=mock` keeps the simulation).
 - [x] Phase 5 code: Resend, WhatsApp Cloud API (+ webhook `/api/webhooks/whatsapp`), GoHighLevel v3 `Version` header (`GHL_API_VERSION`), `/api/admin/messages/send`, link-mode fallback, "Send test to me". Only mocked providers were tested. Set `NEXT_PUBLIC_SEND_MODE=api` once keys exist.
 
+## D. Bug and security sweep (2026-10-22)
+
+Two analysis agents found 79 verified bugs (B001 to B079) and 59 security findings (S001 to S059). All code fixes are in; 536 tests, typecheck, lint and the production build are green; the funnel, video and dashboard Playwright specs pass on iPhone (WebKit), Pixel, Firefox and desktop Safari profiles against a production build, with no CSP violations. Migration `0002_strong_colonel_america` (is_final, admin_audit, pg_trgm indexes) is applied to test, Development and Production.
+
+Config added: `ENABLE_DEV_ROUTES=1` re-enables `?sim=`, `?step=`, `?video=stub` and `/dev/video-flow` (only for e2e builds, never in real production). `CSP_IMG_HOSTS` adds image hosts to the CSP for task-page pictures. `APP_DATABASE_URL` wins over `DATABASE_URL`.
+
+Decisions that are yours (not code):
+- S004: verify email or phone ownership before any send (product decision).
+- S007, S016: the admin key lives in the URL path and the cookie lasts 90 days. A login form or shorter cookie is a product decision.
+- S012: a single-use nonce or kill switch for the test-console bypass. The production console needs it today.
+- S022: how long to keep applicant rows and PII, and whether to purge old backups.
+- S041: encrypt backup dumps and use a separate write-only bucket (new secret and bucket).
+- S044: `.mcp.json` is tracked in git. It holds no key, only the project id and OAuth.
+- S029: a signed token inside the Cal link.
+- S031: edge rate limiting is a Vercel setting.
+- S020: resume token hashing and rotation (schema and lookups).
+- S038 and S033: task-page images from other hosts need `CSP_IMG_HOSTS`; closed versus unknown project notices differ on purpose.
+- Open bug part: an applicant who never completed a video keeps stray uploads in R2 (needs a marker column).
+
 ## C. Starting a fresh session
 
 Say: "Read CLAUDE.md, PLAN.md and NEXT_STEPS.md, then continue with the next unblocked item in section B." If your keys are in `.env`, start with Phase 1 finish.

@@ -33,26 +33,47 @@ function mockPut(url: string, onProgress: (fraction: number) => void): Promise<v
   });
 }
 
+/** An upload that makes no progress for this long is cut, so the retry can run. */
+export const STALL_MS = 45_000;
+
 /** PUT with progress. XMLHttpRequest because fetch cannot report upload progress. */
-export function uploadWithProgress(url: string, blob: Blob, mime: string, onProgress: (fraction: number) => void): Promise<void> {
+export function uploadWithProgress(url: string, blob: Blob, mime: string, onProgress: (fraction: number) => void, stallMs = STALL_MS): Promise<void> {
   if (MOCK_PREFIXES.some((p) => url.startsWith(p))) return mockPut(url, onProgress);
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
+    // A stalled socket (tunnel, handover, suspended tab) never fires onerror, so cut it ourselves.
+    const arm = () => {
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => {
+        reject(new Error("Upload stalled")); // first, so the abort event below cannot reject with a vaguer error
+        xhr.abort();
+      }, stallMs);
+    };
+    const settle = (fn: () => void) => {
+      clearTimeout(watchdog);
+      fn();
+    };
     xhr.open("PUT", url);
     xhr.setRequestHeader("Content-Type", mime);
     xhr.upload.onprogress = (e) => {
+      arm();
       if (e.lengthComputable) onProgress(e.loaded / e.total);
     };
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        onProgress(1);
-        resolve();
+        settle(() => {
+          onProgress(1);
+          resolve();
+        });
       } else {
-        reject(new Error(`Upload failed with status ${xhr.status}`));
+        settle(() => reject(new Error(`Upload failed with status ${xhr.status}`)));
       }
     };
-    xhr.onerror = () => reject(new Error("Network error during upload"));
-    xhr.ontimeout = () => reject(new Error("Upload timed out"));
+    xhr.onerror = () => settle(() => reject(new Error("Network error during upload")));
+    xhr.ontimeout = () => settle(() => reject(new Error("Upload timed out")));
+    xhr.onabort = () => settle(() => reject(new Error("Upload aborted")));
+    arm();
     xhr.send(blob);
   });
 }

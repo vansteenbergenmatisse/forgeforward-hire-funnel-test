@@ -1,6 +1,7 @@
-import { adminFetch, getBaseline, getRecord, renameCachedSlug, setBaseline, setMeta } from "@/features/projects/client";
-import type { ProjectBundle } from "@/features/projects";
-import { planSync } from "./sync-plan";
+import { AdminApiError, adminFetch, getBaseline, getRecord, refreshStageCounts, renameCachedSlug, setBaseline, setLocalBundle, setMeta } from "@/features/projects/client";
+import type { ProjectBundle, ProjectRecordDto } from "@/features/projects";
+import { planSync, type SyncOp } from "./sync-plan";
+import { fitsKeepalive, isRefusal, reconcileRefused } from "./sync-reconcile";
 
 const DEBOUNCE_MS = 400;
 const MAX_PASSES = 3;
@@ -21,26 +22,52 @@ export function noteStageMove(slug: string, from: string, to: string) {
   moves.set(slug, m);
 }
 
+/** After a refusal: read the project from the server, make it the baseline, and put the refused part of the screen back. */
+async function restoreFromServer(slug: string, op: SyncOp): Promise<boolean> {
+  try {
+    const dto = await adminFetch<ProjectRecordDto>("GET", `/api/admin/projects/${slug}`);
+    const server: ProjectBundle = { def: dto.def, questions: dto.questions, stages: dto.stages, templates: dto.templates };
+    const local = bundleOf(slug);
+    if (!local) return false;
+    setBaseline(slug, server);
+    setLocalBundle(slug, reconcileRefused(local, server, op.entity));
+    void refreshStageCounts(slug);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function runOnce(slug: string, keepalive: boolean): Promise<void> {
+  let failure: string | null = null;
   for (let pass = 0; pass < MAX_PASSES; pass++) {
     let base = getBaseline(slug);
     const local = bundleOf(slug);
-    if (!base || !local) return;
+    if (!base || !local) break;
     const ops = planSync(base, local, moves.get(slug));
-    if (ops.length === 0) return;
+    if (ops.length === 0) break;
+    let refused = false;
     for (const op of ops) {
       try {
-        await adminFetch(op.method, op.path, op.body, { keepalive });
+        await adminFetch(op.method, op.path, op.body, { keepalive: keepalive && fitsKeepalive(op.body) });
       } catch (e) {
-        setMeta(slug, { error: e instanceof Error ? e.message : "Could not save." });
-        return;
+        failure = e instanceof Error ? e.message : "Could not save.";
+        // A network or server error is retried on the next change. A refusal would fail again, so that edit is undone and the rest goes on.
+        if (!(e instanceof AdminApiError && isRefusal(e.status)) || !(await restoreFromServer(slug, op))) {
+          setMeta(slug, { error: failure });
+          return;
+        }
+        if (op.entity.kind === "stage" && op.method === "DELETE") moves.get(slug)?.delete(op.entity.id);
+        refused = true;
+        break;
       }
       base = op.apply(base);
       setBaseline(slug, base);
       if (op.method === "DELETE") moves.get(slug)?.delete(op.path.split("/").pop()?.split("?")[0] ?? "");
     }
-    setMeta(slug, { savedAt: Date.now(), error: null });
+    if (!refused && !failure) setMeta(slug, { savedAt: Date.now(), error: null });
   }
+  if (failure) setMeta(slug, { error: failure });
 }
 
 /** Sends every valid pending edit for a project. Runs one at a time per project. */

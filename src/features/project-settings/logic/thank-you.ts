@@ -10,7 +10,7 @@ export function validateThankYou(text: string): string | null {
 }
 
 export function renderThankYou(text: string, firstName: string, replyDays: number): string {
-  return text.replace(/\{first_name\}/g, firstName).replace(/\{reply_days\}/g, String(replyDays));
+  return text.replace(/\{first_name\}/g, () => firstName).replace(/\{reply_days\}/g, () => String(replyDays));
 }
 
 /** The first sentence becomes the heading (without its full stop). The rest is the body. */

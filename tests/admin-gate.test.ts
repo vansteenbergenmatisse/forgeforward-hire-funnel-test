@@ -18,14 +18,16 @@ describe("admin gate", () => {
     expect(res.headers.get("set-cookie")).toBeNull();
   });
 
-  it("right key sets an httpOnly 90 day cookie and redirects to /admin", async () => {
+  it("right key sets an httpOnly 30 day cookie and redirects to /admin", async () => {
     const res = await GET(new NextRequest(`http://x/admin/k/${KEY}`), keyCtx(KEY));
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toBe("http://x/admin");
     const cookie = res.headers.get("set-cookie") ?? "";
     expect(cookie).toContain("ff_admin=");
     expect(cookie.toLowerCase()).toContain("httponly");
-    expect(cookie).toContain(`Max-Age=${60 * 60 * 24 * 90}`);
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(cookie).toContain(`Max-Age=${60 * 60 * 24 * 30}`);
   });
 
   it("proxy returns 404 on /admin without the cookie and passes with it", async () => {

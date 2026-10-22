@@ -34,7 +34,7 @@ export function RecordScreen({ prompt, stream, audioOnly, elapsed, max, unlockIn
         </>
       }
     >
-      <Preview stream={stream} audioOnly={audioOnly} videoRef={videoRef} className="w-full h-[520px] md:h-[420px]">
+      <Preview stream={stream} audioOnly={audioOnly} videoRef={videoRef} className="w-full h-[min(520px,56dvh)] md:h-[420px]">
         <PreviewPill>
           <span className="size-2.5 animate-pulse rounded-full bg-signal motion-reduce:animate-none" aria-hidden />
           <span>Recording</span>

@@ -8,7 +8,7 @@ import type { VideoFlowProps } from "../types";
 async function saveTinyVideo({ api, session }: Pick<VideoFlowProps, "api" | "session">) {
   const mime = "video/webm";
   const blob = new Blob([new Uint8Array(64)], { type: mime });
-  const urls = await api.getUploadUrls({ resumeToken: session.resumeToken, kind: "video", mime, filename: "stub.webm", withThumb: false });
+  const urls = await api.getUploadUrls({ resumeToken: session.resumeToken, kind: "video", mime, filename: "stub.webm", withThumb: false, bytes: blob.size });
   const res = await fetch(urls.putUrl, { method: "PUT", body: blob, headers: { "Content-Type": mime } });
   if (!res.ok) throw new Error("stub upload failed");
   await api.completeVideo({ resumeToken: session.resumeToken, key: urls.key, mime, bytes: blob.size, seconds: 10, audioOnly: true, retakeUsed: false });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui";
 
 /** Native modal dialog. Escape and the backdrop cancel. Focus returns to the opener. */
@@ -26,6 +26,7 @@ export function ConfirmDialog({
   onCancel: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -43,11 +44,11 @@ export function ConfirmDialog({
       onClick={(e) => {
         if (e.target === ref.current) onCancel();
       }}
-      aria-labelledby="confirm-title"
+      aria-labelledby={titleId}
       className="m-auto w-[min(92vw,460px)] rounded-xl border border-line bg-white p-0 text-charcoal shadow-lift backdrop:bg-charcoal/50"
     >
       <div className="p-6">
-        <h2 id="confirm-title" className="text-[24px] leading-tight">
+        <h2 id={titleId} className="text-[24px] leading-tight">
           {title}
         </h2>
         <div className="mt-3 text-[15px] leading-relaxed text-muted">{children}</div>

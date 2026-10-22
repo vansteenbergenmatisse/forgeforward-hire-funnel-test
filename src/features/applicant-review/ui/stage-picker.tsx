@@ -26,7 +26,7 @@ export function StagePicker({ a, stages, onMove }: Props) {
         id="drawer-stage"
         value={a.stageId ?? ""}
         onChange={(e) => choose(e.target.value)}
-        className="h-10 w-full rounded-lg border border-line-strong bg-white px-3 text-sm font-bold text-charcoal focus:border-charcoal focus:outline-none"
+        className="h-10 w-full rounded-lg border border-line-strong bg-white px-3 text-sm pointer-coarse:text-base font-bold text-charcoal focus:border-charcoal focus:outline-none"
       >
         {a.stageId === null && <option value="" disabled>Did not finish</option>}
         {stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}

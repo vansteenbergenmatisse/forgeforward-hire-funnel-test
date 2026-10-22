@@ -5,6 +5,8 @@ import { AlertCircle, Info, Plus } from "lucide-react";
 import { Button } from "@/components/ui";
 import type { StageDef, StageRole } from "@/features/projects";
 import { moveById } from "../logic/reorder";
+import { stopKeepingWarning } from "../logic/retention-warning";
+import { ConfirmDialog } from "../ui/confirm-dialog";
 import { ROLE_LABEL, addStage, assignRole, checkDeleteStage, deleteStage } from "../logic/stages";
 import { useStageUsage } from "../stage-usage";
 import type { SettingsApi } from "../use-settings";
@@ -21,9 +23,16 @@ export function StagesTab({ api }: { api: SettingsApi }) {
   const [notice, setNotice] = useState<Notice>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<StageDef | null>(null);
+  const [unkeeping, setUnkeeping] = useState<StageDef | null>(null);
 
   const setStages = (next: StageDef[]) => api.update((d) => ({ ...d, stages: next }));
   const patch = (id: string, p: Partial<StageDef>) => setStages(stages.map((s) => (s.id === id ? { ...s, ...p } : s)));
+
+  // Turning "Keep videos" off puts every card's video on the 30 day clock, so a stage with cards asks first.
+  function onPositive(stage: StageDef, keep: boolean) {
+    if (!keep && stopKeepingWarning(stage, usage.countCardsInStage(stage.id))) return setUnkeeping(stage);
+    patch(stage.id, { isPositive: keep });
+  }
 
   function onRole(stage: StageDef, role: StageRole) {
     if (role === null) return;
@@ -87,7 +96,7 @@ export function StagesTab({ api }: { api: SettingsApi }) {
                   autoFocus={focusId === s.id}
                   onRename={(name) => patch(s.id, { name })}
                   onRecolor={(color) => patch(s.id, { color })}
-                  onPositive={(isPositive) => patch(s.id, { isPositive })}
+                  onPositive={(keep) => onPositive(s, keep)}
                   onRole={(r) => onRole(s, r)}
                   onDelete={() => onDelete(s)}
                 />
@@ -112,6 +121,19 @@ export function StagesTab({ api }: { api: SettingsApi }) {
       <p className="mt-1 max-w-3xl text-[14px] leading-snug text-muted">
         Videos in a kept stage never auto-delete. A stage with a role cannot be deleted until you move the role. Deleting a stage with cards asks where to move them first.
       </p>
+      <ConfirmDialog
+        open={!!unkeeping}
+        title={unkeeping ? `Stop keeping videos in ${unkeeping.name}?` : "Stop keeping videos?"}
+        confirmLabel="Stop keeping videos"
+        tone="primary"
+        onCancel={() => setUnkeeping(null)}
+        onConfirm={() => {
+          if (unkeeping) patch(unkeeping.id, { isPositive: false });
+          setUnkeeping(null);
+        }}
+      >
+        <p>{unkeeping ? stopKeepingWarning(unkeeping, usage.countCardsInStage(unkeeping.id)) : ""}</p>
+      </ConfirmDialog>
       <DeleteStageDialog
         stage={deleting}
         stages={stages}

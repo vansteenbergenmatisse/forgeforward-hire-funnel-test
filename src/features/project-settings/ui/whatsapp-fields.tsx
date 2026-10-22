@@ -38,7 +38,7 @@ export function WhatsAppFields({ t, errors, touched, onChange, onTouch }: { t: T
                 aria-label={`Variable for slot ${i + 1}`}
                 value={v}
                 onChange={(e) => setOrder(order.map((x, j) => (j === i ? e.target.value : x)))}
-                className={`${controlClass(false)} h-9 flex-1 text-[14px]`}
+                className={`${controlClass(false)} h-9 flex-1 text-[14px] pointer-coarse:text-base`}
               >
                 {TEMPLATE_VARIABLES.map((tv) => (
                   <option key={tv} value={tv}>{`{${tv}}`}</option>

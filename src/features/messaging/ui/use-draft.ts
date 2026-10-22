@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { buildCalLink } from "@/features/bookings";
 import type { ApplicantView } from "@/features/applicants";
 import type { Channel, TemplateDef } from "@/features/projects";
+import { cleanNameValue } from "../fill-template";
 import { prepareMessage } from "../prepare-message";
 
 type ProjectLite = { name: string; calLink: string };
@@ -16,8 +17,8 @@ export function useDraft(applicant: ApplicantView, project: ProjectLite, templat
 
   const values = useMemo(
     () => ({
-      first_name: applicant.firstName,
-      last_name: applicant.lastName,
+      first_name: cleanNameValue(applicant.firstName),
+      last_name: cleanNameValue(applicant.lastName),
       project_name: project.name,
       cal_link: project.calLink
         ? buildCalLink({ calLink: project.calLink, firstName: applicant.firstName, lastName: applicant.lastName, email: applicant.email, applicantId: applicant.id })

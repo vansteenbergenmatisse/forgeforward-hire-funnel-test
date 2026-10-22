@@ -7,9 +7,8 @@ import { dumpGzipped, looksComplete } from "./lib/pg-tools";
 // .env.local (vercel env pull) wins over .env. CI passes real env vars instead.
 config({ path: [".env.local", ".env.development.local", ".env"], quiet: true });
 
-// The shared env schema wants these. The backup does not use the admin key and reads the database directly.
+// The database client reads DATABASE_URL. R2 settings come from r2Env(), which needs no admin key.
 process.env.DATABASE_URL ||= process.env.DATABASE_URL_UNPOOLED;
-process.env.ADMIN_KEY ||= "backup-script-does-not-use-this-key-000000";
 
 async function record(row: { r2Key: string; bytes: number; ok: boolean; error?: string }) {
   try {

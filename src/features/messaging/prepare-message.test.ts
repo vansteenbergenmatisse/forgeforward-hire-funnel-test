@@ -16,6 +16,7 @@ describe("validateOutgoing", () => {
   it("rejects empty and unfilled", () => {
     expect(validateOutgoing("  ")).toBeTruthy();
     expect(validateOutgoing("Hi {last_name}")).toContain("last_name");
+    expect(validateOutgoing("Hi {First_name}")).toContain("First_name");
     expect(validateOutgoing("Hi Sam")).toBeNull();
   });
 });

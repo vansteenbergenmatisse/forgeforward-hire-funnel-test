@@ -6,7 +6,8 @@ test.describe("applicant funnel core", () => {
     await allowR2Puts(page);
   });
 
-  test("happy path with task", async ({ page }) => {
+  test("happy path with task", async ({ page, browserName }) => {
+    test.skip(browserName === "webkit", "Playwright WebKit drops Blob PUT bodies inside page.route, so the R2 upload cannot be intercepted. Chromium and Firefox cover this flow.");
     await page.goto(START);
     await expect(page.getByRole("heading", { name: "Appointment Setter" })).toBeVisible();
     await fillDetails(page);
@@ -21,7 +22,8 @@ test.describe("applicant funnel core", () => {
     if (tasks !== undefined) expect(tasks).toBe(1);
   });
 
-  test("skip task asks once and finishes", async ({ page }) => {
+  test("skip task asks once and finishes", async ({ page, browserName }) => {
+    test.skip(browserName === "webkit", "Playwright WebKit drops Blob PUT bodies inside page.route, so the R2 upload cannot be intercepted. Chromium and Firefox cover this flow.");
     await page.goto(START);
     await fillDetails(page);
     await submitDetails(page);
@@ -57,7 +59,8 @@ test.describe("applicant funnel core", () => {
     else expect(started.size).toBe(1); // real API: every call carries one idempotency key
   });
 
-  test("refresh keeps the place", async ({ page }) => {
+  test("refresh keeps the place", async ({ page, browserName }) => {
+    test.skip(browserName === "webkit", "Playwright WebKit drops Blob PUT bodies inside page.route, so the R2 upload cannot be intercepted. Chromium and Firefox cover this flow.");
     await page.goto(START);
     await fillDetails(page);
     await submitDetails(page);

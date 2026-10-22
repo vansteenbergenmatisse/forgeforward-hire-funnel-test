@@ -21,8 +21,9 @@ import {
   type SortKey,
 } from "@/features/applicants";
 import { AdminShell, PageHeader } from "@/components/layout";
-import { Button } from "@/components/ui";
+import { Banner, Button } from "@/components/ui";
 import { primaryQuestion } from "../logic/card-text";
+import { loadErrorText } from "../logic/load-messages";
 import { pipelineHref, type PipelineTab } from "../logic/tabs";
 import { DEFAULT_TABLE_SORT, sortTableRows, type TableSort } from "../logic/table-sort";
 import { useMounted } from "../use-mounted";
@@ -31,6 +32,7 @@ import { ApplicantsTable } from "./applicants-table";
 import { Board } from "./board";
 import { DnfList } from "./dnf-list";
 import { FunnelLinkChip } from "./funnel-link-chip";
+import { LoadError } from "./load-error";
 import { NoMatches } from "./no-matches";
 import { PipelineSkeleton } from "./pipeline-skeleton";
 import { ProjectNotFound } from "./project-not-found";
@@ -46,17 +48,20 @@ const CARD_SORTS: SortOption[] = [
 const NAV_ACTIVE = { board: "board", dnf: "dnf", table: "table" } as const;
 
 export function PipelineScreen(props: Props) {
-  const { state } = useProjects();
+  const { state, actions } = useProjects();
   const mounted = useMounted();
   const record = state.projects.find((p) => p.def.slug === props.slug);
-  if (!record) return mounted && !state.loading ? <ProjectNotFound slug={props.slug} /> : <PipelineSkeleton slug={props.slug} />;
+  if (!record) {
+    if (state.error) return <LoadError title="Could not load the project" message="Could not reach the server. Check your connection." onRetry={actions.reset} />;
+    return mounted && !state.loading ? <ProjectNotFound slug={props.slug} /> : <PipelineSkeleton slug={props.slug} />;
+  }
   return <ProjectPipeline {...props} record={record} />;
 }
 
 function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, record }: Props & { record: NonNullable<ReturnType<typeof useProjects>["state"]["projects"][number]> }) {
   const router = useRouter();
   const now = useNow();
-  const { applicants, actions } = useApplicants(slug);
+  const { applicants, actions, loading, error, truncated, reload } = useApplicants(slug);
   const { stages, def, questions } = record;
   const question = useMemo(() => primaryQuestion(questions), [questions]);
 
@@ -100,7 +105,11 @@ function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, record
         }
       : { sortValue: sort, sortOptions: CARD_SORTS, onSort: (v: string) => setSort(v === "score" ? "score" : "newest") };
 
-  const exportCsv = () => downloadCsv(`${slug}-applicants-${now.toISOString().slice(0, 10)}.csv`, buildApplicantsCsv(tableRows, stages, question?.id ?? "", now));
+  const exportCsv = () => downloadCsv(`${slug}-applicants-${now.toISOString().slice(0, 10)}.csv`, buildApplicantsCsv(tableRows, stages, question, now));
+
+  // Without data, say why instead of showing empty columns that look like "no applicants".
+  if (loading) return <PipelineSkeleton slug={slug} />;
+  if (error && applicants.length === 0) return <LoadError title="Could not load applicants" message={loadErrorText(error)} onRetry={reload} />;
 
   return (
     <AdminShell active={NAV_ACTIVE[tab]} project={{ slug, name: def.name, boardCount: boardCount(applicants), dnfCount: didNotFinishCount(applicants) }}>
@@ -128,6 +137,23 @@ function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, record
         ]}
       />
       <main className="min-w-0 flex-1 px-7 py-[22px]">
+        {error && (
+          <Banner
+            className="mb-4"
+            action={
+              <Button variant="secondary" size="sm" onClick={reload}>
+                Try again
+              </Button>
+            }
+          >
+            {loadErrorText(error)} You are seeing the last list that loaded.
+          </Banner>
+        )}
+        {truncated && (
+          <Banner tone="warning" className="mb-4">
+            There are more applicants than this screen can load. You see the newest ones. Older cards are not shown yet.
+          </Banner>
+        )}
         <Toolbar
           filters={filters}
           onFilters={setFilters}

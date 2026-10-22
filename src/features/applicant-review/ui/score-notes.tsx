@@ -1,11 +1,14 @@
 "use client";
 
-import { Check, Loader2, Star } from "lucide-react";
+import { AlertTriangle, Check, Loader2, Star } from "lucide-react";
 import type { ApplicantActions, ApplicantView } from "@/features/applicants";
 import { cn } from "@/shared/cn";
 import { nextScore, scoreLabel } from "../lib/score";
 import { Section } from "./section";
 import { useAutosave } from "./use-autosave";
+
+/** Same limit as the PATCH route. */
+const NOTES_MAX = 20_000;
 
 export function ScoreNotes({ a, actions }: { a: ApplicantView; actions: Pick<ApplicantActions, "setScore" | "setNotes"> }) {
   const notes = useAutosave(a.notes, (v) => actions.setNotes(a.id, v));
@@ -35,12 +38,20 @@ export function ScoreNotes({ a, actions }: { a: ApplicantView; actions: Pick<App
         onChange={(e) => notes.change(e.target.value)}
         onBlur={notes.flush}
         rows={4}
+        maxLength={NOTES_MAX}
         placeholder="What stood out?"
-        className="mt-1.5 w-full resize-y rounded-xl border border-line-strong bg-white px-3.5 py-3 text-sm leading-relaxed text-charcoal placeholder:text-placeholder focus:border-charcoal focus:outline-none"
+        className="mt-1.5 w-full resize-y rounded-xl border border-line-strong bg-white px-3.5 py-3 text-sm pointer-coarse:text-base leading-relaxed text-charcoal placeholder:text-placeholder focus:border-charcoal focus:outline-none"
       />
       <p className="mt-1.5 flex h-5 items-center gap-1.5 text-[13px] text-muted" role="status" aria-live="polite">
         {notes.state === "saving" && (<><Loader2 className="size-3.5 animate-spin" aria-hidden />Saving...</>)}
         {notes.state === "saved" && (<><Check className="size-3.5 text-ok" aria-hidden /><span className="font-semibold text-ok">Saved</span></>)}
+        {notes.state === "error" && (
+          <>
+            <AlertTriangle className="size-3.5 text-signal-deep" aria-hidden />
+            <span className="font-semibold text-signal-deep">Not saved.</span>
+            <button type="button" onClick={notes.retry} className="font-bold text-charcoal underline">Retry</button>
+          </>
+        )}
       </p>
     </Section>
   );

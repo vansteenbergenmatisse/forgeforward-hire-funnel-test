@@ -4,7 +4,8 @@ import { sendWhatsAppTemplate, sendWhatsAppText, whatsappConfigured } from "@/pl
 import { buildCalLink } from "@/features/bookings";
 import type { Channel, TemplateDef } from "@/features/projects";
 import { optionalEnv } from "@/shared/env";
-import { buildLinkUrl } from "./link-url";
+import { cleanNameValue } from "./fill-template";
+import { buildLinkUrl, InvalidContactError } from "./link-url";
 import { prepareMessage, validateOutgoing } from "./prepare-message";
 import { WHATSAPP_WINDOW_HOURS } from "./whatsapp-window";
 import type { SendOutcome, SendRequest } from "./send-api";
@@ -39,6 +40,7 @@ export type SendStore = {
 };
 
 const DEFAULT_WA_VARIABLES = ["first_name", "cal_link"];
+const CHANNEL_NAME: Record<Channel, string> = { email: "email", sms: "SMS", whatsapp: "WhatsApp" };
 
 function configured(channel: Channel): boolean {
   return channel === "email" ? emailConfigured() : channel === "sms" ? ghlConfigured() : whatsappConfigured();
@@ -56,14 +58,16 @@ export async function sendApplicantMessage(store: SendStore, req: SendRequest, n
   }
 
   const values = {
-    first_name: a.firstName,
-    last_name: a.lastName,
+    first_name: cleanNameValue(a.firstName),
+    last_name: cleanNameValue(a.lastName),
     project_name: a.projectName,
     cal_link: a.calLink ? buildCalLink({ calLink: a.calLink, firstName: a.firstName, lastName: a.lastName, email: a.email, applicantId: a.id }) : "",
   };
 
   const prepared = template ? prepareMessage(template, values) : null;
-  if (prepared && !prepared.ok) return { ok: false, code: "missing_variable", error: prepared.message, variable: prepared.variable };
+  // An edited message replaces the template text, so a variable the template cannot fill only blocks what was not edited.
+  const needsTemplateText = req.body === undefined || (req.channel === "email" && req.subject === undefined);
+  if (prepared && !prepared.ok && needsTemplateText) return { ok: false, code: "missing_variable", error: prepared.message, variable: prepared.variable };
 
   const body = req.body ?? (prepared?.ok ? prepared.body : "");
   const subject = req.subject ?? (prepared?.ok ? prepared.subject : "");
@@ -96,7 +100,13 @@ export async function sendApplicantMessage(store: SendStore, req: SendRequest, n
 
   if (req.mode === "link" || !configured(req.channel)) {
     if (req.test) return { ok: false, code: "not_configured", error: "This channel has no provider keys yet." };
-    const url = buildLinkUrl({ channel: req.channel, phoneE164: a.phoneE164, email: a.email, subject, body });
+    let url: string;
+    try {
+      url = buildLinkUrl({ channel: req.channel, phoneE164: a.phoneE164, email: a.email, subject, body });
+    } catch (e) {
+      if (e instanceof InvalidContactError) return { ok: false, code: "invalid", error: e.message };
+      throw e;
+    }
     await save({ mode: "link", status: "opened_link", providerMessageId: null, error: null });
     return { ok: true, mode: "link", url };
   }
@@ -117,8 +127,10 @@ export async function sendApplicantMessage(store: SendStore, req: SendRequest, n
           : await sendWhatsAppText({ to: toPhone as string, body });
 
   if (!result.ok) {
+    // The provider's own text can name accounts or numbers. It goes to the message row and the server log, not to the browser.
     if (!req.test) await save({ mode: "api", status: "failed", providerMessageId: null, error: result.error });
-    return { ok: false, code: "provider", error: result.error };
+    console.error(`message send failed (${req.channel}): ${result.error.slice(0, 200)}`);
+    return { ok: false, code: "provider", error: `The ${CHANNEL_NAME[req.channel]} provider did not accept the message. Check the provider keys and the contact details, then try again.` };
   }
   if (!req.test) await save({ mode: "api", status: "sent", providerMessageId: result.providerMessageId, error: null });
   return { ok: true, mode: "api", status: "sent", test: Boolean(req.test) };

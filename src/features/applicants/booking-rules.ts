@@ -15,13 +15,11 @@ export type BookingEvent = {
   cancellationReason: string | null;
 };
 
-export type StageLite = { id: string; name: string; role: string | null };
+export type StageLite = { id: string; name: string; role: string | null; isFinal: boolean };
 
-const LOCKED_STAGE_NAMES = new Set(["hired", "rejected"]);
-
-/** Hired and Rejected are final. A booking never pulls a card out of them. */
-export function isLockedStageName(name: string): boolean {
-  return LOCKED_STAGE_NAMES.has(name.trim().toLowerCase());
+/** Final stages (Hired, Rejected) carry `is_final`. A booking never pulls a card out of them. */
+export function isLockedStageName(stage: Pick<StageLite, "isFinal">): boolean {
+  return stage.isFinal;
 }
 
 /**
@@ -36,7 +34,7 @@ export function bookingTargetStage(
   if (trigger !== "BOOKING_CREATED") return null;
   const target = stages.find((s) => s.role === "on_booking");
   if (!target) return null;
-  if (current && (current.id === target.id || isLockedStageName(current.name))) return null;
+  if (current && (current.id === target.id || isLockedStageName(current))) return null;
   return target;
 }
 

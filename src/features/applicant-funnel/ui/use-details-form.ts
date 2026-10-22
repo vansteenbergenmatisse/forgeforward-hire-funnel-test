@@ -6,7 +6,9 @@ import { FunnelApiError, NETWORK_MESSAGE, SERVER_MESSAGE } from "../api/errors";
 import {
   activeQuestions,
   countErrors,
+  fieldOrder,
   firstErrorKey,
+  parseNumberAnswer,
   questionKey,
   validateField,
   validateForm,
@@ -16,6 +18,14 @@ import {
 } from "../lib/form-validation";
 import { newIdempotencyKey } from "../lib/idempotency";
 import type { FunnelApi, FunnelSession, StartPayload } from "../types";
+
+/** Keeps only server field errors that match a field on screen. */
+export function mapServerFields(fields: Record<string, string>, questions: QuestionDef[]): FormErrors {
+  const known = new Set(fieldOrder(questions));
+  const out: FormErrors = {};
+  for (const [k, msg] of Object.entries(fields)) if (known.has(k)) out[k] = msg;
+  return out;
+}
 
 export type DetailsPreset = { values: FormValues; showErrors: boolean };
 
@@ -82,7 +92,8 @@ export function useDetailsForm({ slug, questions, api, tracking, inAppBrowser, i
     const answers: StartPayload["answers"] = {};
     for (const q of activeQuestions(questions)) {
       const a = values.answers[q.id];
-      if (a !== undefined && a !== "" && !(Array.isArray(a) && a.length === 0)) answers[q.id] = a;
+      if (a === undefined || (typeof a === "string" && a.trim() === "") || (Array.isArray(a) && a.length === 0)) continue;
+      answers[q.id] = q.type === "number" ? (parseNumberAnswer(a) ?? a) : a;
     }
     try {
       const session = await api.start(
@@ -99,12 +110,22 @@ export function useDetailsForm({ slug, questions, api, tracking, inAppBrowser, i
           answers,
           utm: tracking,
           inAppBrowser,
-          website,
+          website: website || undefined,
         },
         keyRef.current,
       );
       onDone(session, values.firstName.trim());
     } catch (err) {
+      if (err instanceof FunnelApiError && err.status !== null && err.status >= 400 && err.status < 500 && err.code !== "in_progress") {
+        keyRef.current = null; // the server refused this payload: an edited retry is a new request
+      }
+      const serverFields = err instanceof FunnelApiError ? mapServerFields(err.fields, questions) : {};
+      if (Object.keys(serverFields).length) {
+        setErrors(serverFields);
+        setSummary(countErrors(serverFields));
+        const first = firstErrorKey(serverFields, questions);
+        if (first) focusField(first);
+      }
       setSubmitError(err instanceof FunnelApiError ? (err.network ? NETWORK_MESSAGE : err.message) : SERVER_MESSAGE);
       busyRef.current = false;
       setSubmitting(false);

@@ -9,7 +9,7 @@ export function dateRangeLabel(from?: string | null, to?: string | null): string
   return "Date range";
 }
 
-const inputClass = "mt-1 h-9 w-full rounded-md border border-line-strong bg-white px-2 text-[13px] text-charcoal focus-visible:outline-2 focus-visible:outline-charcoal";
+const inputClass = "mt-1 h-9 w-full rounded-md border border-line-strong bg-white px-2 text-[13px] pointer-coarse:text-base text-charcoal focus-visible:outline-2 focus-visible:outline-charcoal";
 
 /** "Date range" chip with from and to dates (the day the application was created). */
 export function DateFilter({ from, to, onChange }: { from?: string | null; to?: string | null; onChange: (v: { from: string | null; to: string | null }) => void }) {

@@ -11,6 +11,18 @@ import { parseCalcomWebhook } from "./parse";
 
 
 
+/** A signed payload older than this is treated as a replay. Cal.com retries soon after a failure, so a short window is enough. */
+export const WEBHOOK_MAX_AGE_MS = 15 * 60_000;
+/** Allowed clock difference for a payload that claims to be from the future. */
+const WEBHOOK_FUTURE_SKEW_MS = 5 * 60_000;
+
+/** True when the payload says it was sent outside the accepted window. A payload without a time is accepted. */
+export function isReplay(sentAt: Date | null, now: Date): boolean {
+  if (!sentAt) return false;
+  const age = now.getTime() - sentAt.getTime();
+  return age > WEBHOOK_MAX_AGE_MS || age < -WEBHOOK_FUTURE_SKEW_MS;
+}
+
 export type WebhookOutcome =
   | { status: 200; result: "applied" | "duplicate" | "unmatched" | "ignored" | "stale" }
   | { status: 400 | 401 | 503; result: "error"; reason: string };
@@ -39,7 +51,7 @@ async function release(ev: BookingEvent) {
 export async function handleCalcomWebhook(
   rawBody: string,
   signatureHeader: string | null,
-  opts: { secret: string | undefined; nodeEnv: string | undefined; log?: (msg: string) => void },
+  opts: { secret: string | undefined; nodeEnv?: string | undefined; log?: (msg: string) => void; now?: Date },
 ): Promise<WebhookOutcome> {
   const auth = checkWebhookAuth(rawBody, signatureHeader, opts.secret, opts.nodeEnv);
   if (!auth.ok) {
@@ -57,6 +69,10 @@ export async function handleCalcomWebhook(
   if (parsed.kind === "ignored") return { status: 200, result: "ignored" };
 
   const ev = parsed.event;
+  if (isReplay(parsed.sentAt, opts.now ?? new Date())) {
+    opts.log?.(`calcom webhook ignored: sent outside the accepted time window (${ev.trigger})`);
+    return { status: 200, result: "stale" };
+  }
   if (!(await claim(ev))) return { status: 200, result: "duplicate" };
   try {
     const applicantId = await findApplicantForBooking(ev);

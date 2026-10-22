@@ -9,7 +9,7 @@ export type ApplicantFilters = {
   appliedBefore?: boolean;
   /** Minimum score (1..5). Unscored applicants never match. */
   minScore?: number | null;
-  /** Inclusive dates as YYYY-MM-DD, compared in UTC against createdAt. */
+  /** Inclusive days as YYYY-MM-DD from the date picker. They are days in the admin's own time zone. */
   from?: string | null;
   to?: string | null;
 };
@@ -17,20 +17,32 @@ export type ApplicantFilters = {
 export const EMPTY_FILTERS: ApplicantFilters = {};
 
 const digits = (s: string) => s.replace(/\D/g, "");
+const MIN_PHONE_DIGITS = 3;
 
 export function matchesSearch(a: ApplicantView, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
   const name = `${a.firstName} ${a.lastName}`.toLowerCase();
   if (name.includes(q) || a.email.toLowerCase().includes(q)) return true;
+  // Digits only match phone numbers when the query looks like a phone number, so "mike5" or "5" do not list strangers.
+  if (/[a-z]/i.test(q)) return false;
   const qd = digits(q);
-  return qd.length > 0 && digits(a.phoneE164).includes(qd);
+  return qd.length >= MIN_PHONE_DIGITS && digits(a.phoneE164).includes(qd);
+}
+
+/** Start of a YYYY-MM-DD day in the browser's time zone, or null for a bad value. */
+function localDayStart(ymd: string, plusDays = 0): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + plusDays).getTime();
 }
 
 function inDateRange(createdAt: string, from?: string | null, to?: string | null): boolean {
-  const day = createdAt.slice(0, 10);
-  if (from && day < from) return false;
-  if (to && day > to) return false;
+  const t = new Date(createdAt).getTime();
+  const start = from ? localDayStart(from) : null;
+  const endExclusive = to ? localDayStart(to, 1) : null;
+  if (start !== null && t < start) return false;
+  if (endExclusive !== null && t >= endExclusive) return false;
   return true;
 }
 

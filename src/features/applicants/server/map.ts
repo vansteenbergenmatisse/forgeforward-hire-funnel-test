@@ -39,6 +39,7 @@ export function toApplicantView(
   projectSlug: string,
   events: EventRow[],
   messages: MessageDbRow[],
+  detail = true,
 ): ApplicantView {
   const booking = row.booking;
   const status = booking?.status === "cancelled" || booking?.status === "rescheduled" ? booking.status : "booked";
@@ -73,7 +74,8 @@ export function toApplicantView(
     taskText: row.taskText,
     taskLink: row.taskLink,
     // Rows from before the size columns existed have no name or size. Fall back to the key and 0.
-    taskFile: row.taskFileKey
+    // Retention deletes the task file with the video, so the link is hidden after that.
+    taskFile: row.taskFileKey && !row.videoDeletedAt
       ? { name: row.taskFileName ?? fileName(row.taskFileKey), url: mediaPath(row.id, "task"), bytes: row.taskFileBytes ?? 0 }
       : null,
     score: row.score,
@@ -84,5 +86,6 @@ export function toApplicantView(
     lastStageChangeAt: row.lastStageChangeAt ? iso(row.lastStageChangeAt) : null,
     events: events.map(toEventView).sort((a, b) => a.at.localeCompare(b.at)),
     messages: messages.map(toMessageView).sort((a, b) => a.at.localeCompare(b.at)),
+    ...(detail ? {} : { detail: false }),
   };
 }

@@ -53,7 +53,8 @@ describe("sendApplicantMessage", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(okJson({ message: "Bad" }, 422)));
     const { s, rows } = store();
     const r = await sendApplicantMessage(s, { ...base, channel: "email", templateId: "t1" });
-    expect(r).toMatchObject({ ok: false, code: "provider", error: "Bad" });
+    expect(r).toMatchObject({ ok: false, code: "provider" });
+    expect((r as { error: string }).error).not.toContain("Bad");
     expect(rows[0]).toMatchObject({ status: "failed", error: "Bad" });
   });
 
@@ -134,6 +135,25 @@ describe("sendApplicantMessage", () => {
     const { s, rows } = store();
     expect((await sendApplicantMessage(s, { ...base, channel: "sms", body: "Hi" })).ok).toBe(true);
     expect(rows[0]).toMatchObject({ providerMessageId: "m", channel: "sms" });
+  });
+
+  describe("edited text and names", () => {
+    const NO_CAL = { ...A, calLink: "" };
+    it("blocks a template whose variable is empty when the text was not edited", async () => {
+      const { s } = store({ applicant: NO_CAL });
+      expect(await sendApplicantMessage(s, { ...base, channel: "email", templateId: "t1" })).toMatchObject({ ok: false, code: "missing_variable", variable: "cal_link" });
+    });
+    it("sends the edited text even though the template cannot be filled", async () => {
+      const { s, rows } = store({ applicant: NO_CAL });
+      const r = await sendApplicantMessage(s, { ...base, channel: "email", templateId: "t1", subject: "Hello", body: "Book on our site." });
+      expect(r).toMatchObject({ ok: true, mode: "link" });
+      expect(rows[0]).toMatchObject({ body: "Book on our site." });
+    });
+    it("keeps links and domains out of the name values", async () => {
+      const { s, rows } = store({ applicant: { ...A, firstName: "Click evil.io now" }, templates: [{ ...T, body: "Hi {first_name}" }] });
+      await sendApplicantMessage(s, { ...base, channel: "email", templateId: "t1" });
+      expect(rows[0].body).toBe("Hi Click now");
+    });
   });
 
   describe("send test to me", () => {

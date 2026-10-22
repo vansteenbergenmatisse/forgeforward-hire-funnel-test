@@ -7,6 +7,7 @@ import { buildCalLink } from "@/features/bookings";
 import { Button } from "@/components/ui";
 import { cn } from "@/shared/cn";
 import { normalizeCalLink, validateCalLink, validateProjectName, validateReplyDays } from "../logic/general";
+import { INTRO_MAX, countText } from "../logic/limits";
 import { validateSlug } from "../logic/slug";
 import { renameSettingsSlug } from "../store";
 import type { SettingsApi } from "../use-settings";
@@ -47,6 +48,7 @@ export function GeneralTab({ api }: { api: SettingsApi }) {
                 error={nameError ?? undefined}
                 onChange={(e) => {
                   setName(e.target.value);
+                  setNameTouched(true);
                   if (!validateProjectName(e.target.value)) setProject({ name: e.target.value.trim() });
                 }}
                 onBlur={() => setNameTouched(true)}
@@ -56,8 +58,9 @@ export function GeneralTab({ api }: { api: SettingsApi }) {
                 label="Intro paragraph"
                 rows={4}
                 value={project.intro}
+                maxLength={INTRO_MAX}
                 onChange={(e) => setProject({ intro: e.target.value })}
-                hint="Shows on the first screen of the application."
+                hint={`Shows on the first screen of the application. ${countText(project.intro, INTRO_MAX)}.`}
               />
               <div className="flex flex-col gap-2">
                 <DenseInput
@@ -67,6 +70,7 @@ export function GeneralTab({ api }: { api: SettingsApi }) {
                   error={calError ?? undefined}
                   onChange={(e) => {
                     setCal(e.target.value);
+                    setCalTouched(true);
                     const n = normalizeCalLink(e.target.value);
                     if (n) setProject({ calLink: n });
                   }}
@@ -117,6 +121,7 @@ export function GeneralTab({ api }: { api: SettingsApi }) {
                 hint="Shows on the thank-you page as {reply_days}. In days."
                 onChange={(e) => {
                   setDays(e.target.value);
+                  setDaysTouched(true);
                   if (!validateReplyDays(e.target.value)) setProject({ replyDays: Number(e.target.value) });
                 }}
                 onBlur={() => setDaysTouched(true)}

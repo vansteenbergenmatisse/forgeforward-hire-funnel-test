@@ -50,18 +50,47 @@ function plural(n: number, one: string, many: string) {
   return n === 1 ? one : many;
 }
 
+/** Browser-reported problems come from visitors, so only the newest few get their own alert. The rest are summed up. */
+export const MAX_CLIENT_ALERTS = 3;
+
 /** One alert per error source plus one for the backup. Resolved alerts are never returned. */
 export function deriveAlerts(input: { errors: ErrorRow[]; backups: BackupRow[]; now: Date }): SystemAlert[] {
   const alerts: SystemAlert[] = [];
 
   const bySource = new Map<string, ErrorRow[]>();
   for (const e of input.errors) bySource.set(e.source, [...(bySource.get(e.source) ?? []), e]);
+  const clientSources: { source: string; rows: ErrorRow[]; latestAt: number }[] = [];
   for (const [source, rows] of bySource) {
+    const latest = [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+    if (source.startsWith("client:")) {
+      clientSources.push({ source, rows, latestAt: latest.createdAt.getTime() });
+      continue;
+    }
+    alerts.push({
+      id: `errors:${source}`,
+      title: `${rows.length} unresolved ${source} ${plural(rows.length, "error", "errors")}.`,
+      detail: latest.message,
+      resolved: false,
+    });
+  }
+
+  clientSources.sort((a, b) => b.latestAt - a.latestAt);
+  for (const { source, rows } of clientSources.slice(0, MAX_CLIENT_ALERTS)) {
     const latest = [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
     alerts.push({
       id: `errors:${source}`,
       title: `${rows.length} unresolved ${source} ${plural(rows.length, "error", "errors")}.`,
       detail: latest.message,
+      resolved: false,
+    });
+  }
+  const hidden = clientSources.slice(MAX_CLIENT_ALERTS);
+  if (hidden.length > 0) {
+    const n = hidden.reduce((sum, h) => sum + h.rows.length, 0);
+    alerts.push({
+      id: "errors:client:more",
+      title: `${n} more unresolved browser ${plural(n, "error", "errors")}.`,
+      detail: `${hidden.length} other browser event ${plural(hidden.length, "type", "types")}. Check the system errors list.`,
       resolved: false,
     });
   }

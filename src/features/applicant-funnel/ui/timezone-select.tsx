@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { controlClass } from "@/components/forms";
 import { cn } from "@/shared/cn";
@@ -32,6 +32,11 @@ export function TimeZoneSelect({
     () => (q ? options.filter((o) => o.label.toLowerCase().includes(q) || o.zone.toLowerCase().includes(q)) : options).slice(0, 60),
     [options, q],
   );
+
+  // Keep the highlighted option visible when arrow keys move past the edge of the list.
+  useEffect(() => {
+    if (open) document.getElementById(`${listId}-${active}`)?.scrollIntoView({ block: "nearest" });
+  }, [open, active, listId]);
 
   function pick(zone: string) {
     onChange(zone);

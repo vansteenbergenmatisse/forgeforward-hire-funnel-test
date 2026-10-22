@@ -49,6 +49,10 @@ describe("phaseReducer", () => {
     const s = run([...toRecording, { type: "RECORDING_ENDED", seconds: 40, bytes: 10, hidden: true }]);
     expect(s).toMatchObject({ phase: "prep", notice: NOTICE_HIDDEN, retakesUsed: 0 });
   });
+  it("an empty recording goes back to prep without using the retake", () => {
+    const s = run([...toRecording, { type: "RECORDING_ENDED", seconds: 40, bytes: 0, hidden: false }]);
+    expect(s).toMatchObject({ phase: "prep", notice: NOTICE_HIDDEN, retakesUsed: 0 });
+  });
   it("a file over 60 MB asks to record again without using the retake", () => {
     const s = run([...toRecording, { type: "RECORDING_ENDED", seconds: 40, bytes: 61 * 1024 * 1024, hidden: false }]);
     expect(s).toMatchObject({ phase: "prep", notice: NOTICE_BIG, retakesUsed: 0 });

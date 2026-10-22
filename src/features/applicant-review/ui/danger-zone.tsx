@@ -7,10 +7,21 @@ import { Section } from "./section";
 
 export const DELETE_WORD = "DELETE";
 
-export function DangerZone({ onDelete }: { onDelete: () => void }) {
+/** `onDelete` resolves null when the applicant is gone, or the reason it failed. */
+export function DangerZone({ onDelete }: { onDelete: () => Promise<string | null> }) {
   const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const id = useId();
-  const ready = text === DELETE_WORD;
+  const ready = text === DELETE_WORD && !busy;
+
+  async function confirm() {
+    setBusy(true);
+    setError(null);
+    const failure = await onDelete();
+    setBusy(false);
+    if (failure) setError(failure);
+  }
   return (
     <Section title="Danger zone">
       <div className="rounded-xl border border-signal/30 bg-signal-tint/50 p-4">
@@ -24,12 +35,15 @@ export function DangerZone({ onDelete }: { onDelete: () => void }) {
             onChange={(e) => setText(e.target.value)}
             autoComplete="off"
             placeholder={DELETE_WORD}
-            className="h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-white px-3 text-sm focus:border-charcoal focus:outline-none"
+            className="h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-white px-3 text-sm pointer-coarse:text-base focus:border-charcoal focus:outline-none"
           />
-          <Button variant="danger" icon={<Trash2 className="size-4" aria-hidden />} disabled={!ready} onClick={onDelete}>
-            Delete applicant
+          <Button variant="danger" icon={<Trash2 className="size-4" aria-hidden />} disabled={!ready} onClick={confirm}>
+            {busy ? "Deleting..." : "Delete applicant"}
           </Button>
         </div>
+        <p role="alert" className={error ? "mt-3 text-sm font-semibold text-signal-deep" : "sr-only"}>
+          {error}
+        </p>
       </div>
     </Section>
   );

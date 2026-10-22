@@ -28,13 +28,13 @@ export function FieldShell({ label, htmlFor, hint, error, optional, className, c
   );
 }
 
-const control = "h-9 text-[14.5px]";
+const control = "h-9 text-[14.5px] pointer-coarse:text-base";
 
 export function DenseInput({ label, hint, error, optional, className, inputClassName, mono, ...rest }: FieldProps & ComponentProps<"input"> & { mono?: boolean; inputClassName?: string }) {
   const id = useId();
   return (
     <FieldShell label={label} htmlFor={id} hint={hint} error={error} optional={optional} className={className}>
-      <input id={id} aria-invalid={error ? true : undefined} className={cn(controlClass(!!error), control, mono && "font-mono text-[13.5px]", inputClassName)} {...rest} />
+      <input id={id} aria-invalid={error ? true : undefined} className={cn(controlClass(!!error), control, mono && "font-mono text-[13.5px] pointer-coarse:text-base", inputClassName)} {...rest} />
     </FieldShell>
   );
 }
@@ -43,7 +43,7 @@ export function DenseTextArea({ label, hint, error, optional, className, rows = 
   const id = useId();
   return (
     <FieldShell label={label} htmlFor={id} hint={hint} error={error} optional={optional} className={className}>
-      <textarea id={id} rows={rows} aria-invalid={error ? true : undefined} className={cn(controlClass(!!error), "py-2 text-[14.5px] leading-snug")} {...rest} />
+      <textarea id={id} rows={rows} aria-invalid={error ? true : undefined} className={cn(controlClass(!!error), "py-2 text-[14.5px] pointer-coarse:text-base leading-snug")} {...rest} />
     </FieldShell>
   );
 }

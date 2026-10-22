@@ -1,5 +1,7 @@
 import type { FunnelApi } from "../types";
-import { FunnelApiError, NETWORK_MESSAGE, SERVER_MESSAGE } from "./errors";
+import { errorFromResponse, FunnelApiError, NETWORK_MESSAGE } from "./errors";
+
+const TIMEOUT_MS = 20_000;
 
 async function call<T>(path: string, body: unknown, idempotencyKey?: string): Promise<T> {
   let res: Response;
@@ -8,14 +10,23 @@ async function call<T>(path: string, body: unknown, idempotencyKey?: string): Pr
       method: "POST",
       headers: { "Content-Type": "application/json", ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}) },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch {
     throw new FunnelApiError(NETWORK_MESSAGE, { network: true });
   }
-  if (!res.ok) throw new FunnelApiError(SERVER_MESSAGE, { status: res.status });
+  if (!res.ok) {
+    const parsed: unknown = await res.json().catch(() => null);
+    throw errorFromResponse(res.status, parsed);
+  }
   if (res.status === 204) return undefined as T;
-  const text = await res.text();
-  return (text ? JSON.parse(text) : undefined) as T;
+  try {
+    const text = await res.text();
+    return (text ? JSON.parse(text) : undefined) as T;
+  } catch {
+    // The body stalled or was cut off after the headers: same as a dropped connection.
+    throw new FunnelApiError(NETWORK_MESSAGE, { network: true });
+  }
 }
 
 type SessionWire = { applicant_id: string; resume_token: string };

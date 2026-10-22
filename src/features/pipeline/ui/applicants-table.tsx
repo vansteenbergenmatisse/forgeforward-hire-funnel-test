@@ -65,7 +65,7 @@ export function ApplicantsTable({ applicants, stages, question, now, sort, onSor
             <tr key={a.id} onClick={() => onOpen(a.id)} className="cursor-pointer border-b border-line last:border-b-0 hover:bg-ivory">
               <td className="px-4 py-3">
                 <button type="button" data-card-id={a.id} className="flex items-center gap-2 rounded-md text-left font-bold text-charcoal focus-visible:outline-2 focus-visible:outline-charcoal">
-                  {a.firstName} {a.lastName}
+                  <span className="max-w-[240px] truncate">{a.firstName} {a.lastName}</span>
                   <CountryChip code={a.phoneCountry} />
                 </button>
               </td>

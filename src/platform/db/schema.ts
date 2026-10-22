@@ -81,6 +81,8 @@ export const stages = pgTable(
     color: text("color").notNull().default("gray"),
     position: integer("position").notNull().default(0),
     isPositive: boolean("is_positive").notNull().default(false),
+    /** Terminal stage (Hired, Rejected). A booking never moves a card out of it. */
+    isFinal: boolean("is_final").notNull().default(false),
     role: text("role", { enum: STAGE_ROLES }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -152,6 +154,11 @@ export const applicants = pgTable(
     index("applicants_stage_idx").on(t.stageId),
     index("applicants_email_idx").on(t.projectId, t.email),
     index("applicants_handoff_idx").on(t.handoffToken),
+    // Trigram indexes serve the admin search (ILIKE '%q%'). Needs the pg_trgm extension (created in migration 0002).
+    index("applicants_first_name_trgm_idx").using("gin", sql`${t.firstName} gin_trgm_ops`),
+    index("applicants_last_name_trgm_idx").using("gin", sql`${t.lastName} gin_trgm_ops`),
+    index("applicants_email_trgm_idx").using("gin", sql`${t.email} gin_trgm_ops`),
+    index("applicants_phone_trgm_idx").using("gin", sql`${t.phoneE164} gin_trgm_ops`),
   ],
 );
 
@@ -243,6 +250,21 @@ export const idempotencyKeys = pgTable("idempotency_keys", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
+
+/** One row per admin change. `detail` holds ids and field names only, never applicant values. */
+export const adminAudit = pgTable(
+  "admin_audit",
+  {
+    id: id(),
+    action: text("action").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: text("target_id"),
+    detail: jsonb("detail").$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("admin_audit_created_idx").on(t.createdAt)],
+);
 
 export const systemErrors = pgTable("system_errors", {
   id: id(),

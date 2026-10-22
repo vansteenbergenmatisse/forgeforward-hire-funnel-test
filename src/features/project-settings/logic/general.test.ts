@@ -15,7 +15,12 @@ describe("general validation", () => {
     expect(normalizeCalLink("cal.com/forgeforward/interview")).toBe("https://cal.com/forgeforward/interview");
     expect(normalizeCalLink("https://cal.com/a/b/")).toBe("https://cal.com/a/b");
     for (const v of ["", "nonsense", "javascript:alert(1)", "https://cal.com", "ftp://cal.com/a"]) expect(normalizeCalLink(v)).toBeNull();
+    expect(normalizeCalLink("cal.com/team/x?duration=15")).toBe("https://cal.com/team/x?duration=15");
+    expect(normalizeCalLink("https://app.cal.com/team/x")).toBe("https://app.cal.com/team/x");
     expect(validateCalLink("")).not.toBeNull();
     expect(validateCalLink("cal.com/a/b")).toBeNull();
+  });
+  it("cal link refuses plain http, other hosts and look-alikes", () => {
+    for (const v of ["http://cal.com/a/b", "https://evil.example/a/b", "https://cal.com.evil.example/a/b", "https://notcal.com/a/b", "https://u:p@cal.com/a/b"]) expect(normalizeCalLink(v)).toBeNull();
   });
 });

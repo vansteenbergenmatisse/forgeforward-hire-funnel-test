@@ -72,7 +72,7 @@ type CountdownProps = { stream: MediaStream | null; audioOnly: boolean; count: n
 export function CountdownScreen({ stream, audioOnly, count, videoRef }: CountdownProps) {
   return (
     <FlowScreen label="Recording starts soon">
-      <Preview stream={stream} audioOnly={audioOnly} videoRef={videoRef} className="w-full h-[520px] md:h-[420px]">
+      <Preview stream={stream} audioOnly={audioOnly} videoRef={videoRef} className="w-full h-[min(520px,56dvh)] md:h-[420px]">
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-charcoal/40 text-white" role="timer" aria-live="assertive">
           <span className="font-display text-[160px] leading-none tabular-nums">{count}</span>
           <span className="mt-2 text-base font-bold">Recording starts</span>

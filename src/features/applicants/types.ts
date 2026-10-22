@@ -66,19 +66,40 @@ export type ApplicantView = {
   lastStageChangeAt: string | null;
   events: TimelineEvent[];
   messages: MessageRow[];
+  /** false = a list row: `events` and `messages` are empty until the detail is loaded. Anything else = complete. */
+  detail?: boolean;
 };
 
 export type ApplicantActions = {
   moveToStage(id: string, stageId: string): void;
   setScore(id: string, score: number | null): void;
-  setNotes(id: string, notes: string): void;
+  /** Resolves true when the server kept the notes. */
+  setNotes(id: string, notes: string): Promise<boolean>;
   markRead(id: string): void;
   addMessage(id: string, message: Omit<MessageRow, "id" | "at"> & { at?: string }): void;
-  remove(id: string): void;
+  /** Resolves null when the applicant and their files are gone, or a short reason when the delete failed. */
+  remove(id: string): Promise<string | null>;
   /** Adds a card to the board from "Did not finish". */
   placeOnBoard(id: string, stageId: string): void;
   /** Links an unmatched Cal.com booking to an applicant: saves the booking, moves the card and adds the timeline event. */
-  linkBooking(id: string, booking: LinkableBooking): void;
+  linkBooking(id: string, booking: LinkableBooking): Promise<boolean>;
+  /** Loads the timeline and messages of one applicant (list rows come without them). */
+  loadDetail(id: string): Promise<void>;
+};
+
+/** Why the applicant list could not be loaded. "session" = the admin cookie ended, "network" = anything else. */
+export type ApplicantsLoadError = "session" | "network";
+
+export type UseApplicantsResult = {
+  applicants: ApplicantView[];
+  actions: ApplicantActions;
+  /** True until the first list has arrived (or failed). */
+  loading: boolean;
+  /** Set while the latest load failed. The last good list stays in `applicants`. */
+  error: ApplicantsLoadError | null;
+  /** True when the server holds more applicants than it sent. The newest ones are shown. */
+  truncated: boolean;
+  reload: () => void;
 };
 
 /** The unmatched booking the user picked. `id` is the unmatched_bookings row. */

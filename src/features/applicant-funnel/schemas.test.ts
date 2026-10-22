@@ -42,3 +42,32 @@ describe("taskSchema", () => {
     expect(taskSchema.safeParse({ resumeToken: "t", text: "a".repeat(5001) }).success).toBe(false);
   });
 });
+
+describe("startSchema bounds", () => {
+  it("rejects an unknown time zone", () => {
+    expect(startSchema.safeParse({ ...valid, timezone: "Mars/Olympus" }).success).toBe(false);
+    expect(startSchema.safeParse({ ...valid, timezone: "UTC" }).success).toBe(true);
+  });
+  it("keeps only known tracking keys and caps their length", () => {
+    const r = startSchema.parse({ ...valid, utm: { utm_source: "fb", evil: "x" } });
+    expect(r.utm).toEqual({ utm_source: "fb" });
+    expect(startSchema.safeParse({ ...valid, utm: { utm_source: "a".repeat(201) } }).success).toBe(false);
+  });
+  it("limits answer sizes and counts", () => {
+    expect(startSchema.safeParse({ ...valid, answers: { q: "a".repeat(2001) } }).success).toBe(false);
+    const many = Object.fromEntries(Array.from({ length: 101 }, (_, i) => [`q${i}`, "x"]));
+    expect(startSchema.safeParse({ ...valid, answers: many }).success).toBe(false);
+  });
+  it("needs a two letter phone country", () => {
+    expect(startSchema.safeParse({ ...valid, phoneCountry: "U1" }).success).toBe(false);
+  });
+});
+
+describe("taskSchema link", () => {
+  it("takes http and https links only", () => {
+    expect(taskSchema.safeParse({ resumeToken: "t", link: "https://example.com/x" }).success).toBe(true);
+    expect(taskSchema.safeParse({ resumeToken: "t", link: "javascript:alert(1)" }).success).toBe(false);
+    expect(taskSchema.safeParse({ resumeToken: "t", link: "data:text/html,hi" }).success).toBe(false);
+    expect(taskSchema.safeParse({ resumeToken: "t", link: `https://example.com/${"a".repeat(2100)}` }).success).toBe(false);
+  });
+});

@@ -5,15 +5,17 @@ export const DEFAULT_STAGES: {
   name: string;
   color: string;
   isPositive: boolean;
+  /** Terminal stage. A booking never pulls a card out of it. */
+  isFinal: boolean;
   role: (typeof STAGE_ROLES)[number] | null;
 }[] = [
-  { name: "New", color: "gray", isPositive: false, role: "entry_new" },
-  { name: "Did task", color: "blue", isPositive: false, role: "entry_task" },
-  { name: "Interview booked", color: "amber", isPositive: true, role: "on_booking" },
-  { name: "Interviewed", color: "purple", isPositive: true, role: null },
-  { name: "Trial", color: "teal", isPositive: true, role: null },
-  { name: "Hired", color: "green", isPositive: true, role: null },
-  { name: "Rejected", color: "red", isPositive: false, role: null },
+  { name: "New", color: "gray", isPositive: false, isFinal: false, role: "entry_new" },
+  { name: "Did task", color: "blue", isPositive: false, isFinal: false, role: "entry_task" },
+  { name: "Interview booked", color: "amber", isPositive: true, isFinal: false, role: "on_booking" },
+  { name: "Interviewed", color: "purple", isPositive: true, isFinal: false, role: null },
+  { name: "Trial", color: "teal", isPositive: true, isFinal: false, role: null },
+  { name: "Hired", color: "green", isPositive: true, isFinal: true, role: null },
+  { name: "Rejected", color: "red", isPositive: false, isFinal: true, role: null },
 ];
 
 export const DEFAULT_THANK_YOU =

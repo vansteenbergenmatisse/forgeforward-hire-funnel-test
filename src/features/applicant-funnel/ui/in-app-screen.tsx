@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { Check, Compass, Copy, ExternalLink } from "lucide-react";
+import { LinkField } from "@/components/forms";
 import { MainButton, StepBody, StepFooter, TextButton } from "@/components/funnel";
+import { copyText } from "../lib/copy-text";
 import { buildChromeIntentUrl, isAndroid } from "../lib/in-app";
 import { useUserAgent } from "./use-user-agent";
 
@@ -15,12 +17,11 @@ export function InAppScreen({ onContinue, pageUrl }: { onContinue: () => void; p
   const intent = isAndroid(ua) ? buildChromeIntentUrl(url) : null;
 
   async function copy() {
-    try {
-      await navigator.clipboard.writeText(url);
+    if (await copyText(url)) {
       setCopied(true);
       setCopyFailed(false);
       setTimeout(() => setCopied(false), 2500);
-    } catch {
+    } else {
       setCopyFailed(true);
     }
   }
@@ -38,8 +39,9 @@ export function InAppScreen({ onContinue, pageUrl }: { onContinue: () => void; p
           </p>
           <p role="status" className="mt-3 min-h-5 text-sm font-semibold text-ok">
             {copied && "Link copied. Paste it in your browser."}
-            {copyFailed && <span className="text-signal-deep">Could not copy. Press and hold the address to copy it.</span>}
+            {copyFailed && <span className="text-signal-deep">Could not copy. Press and hold the link below to copy it.</span>}
           </p>
+          {copyFailed && <LinkField value={url} label="Link to this page" className="mt-2" />}
         </div>
       </StepBody>
       <StepFooter>

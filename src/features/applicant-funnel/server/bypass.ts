@@ -1,10 +1,16 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const TEST_CONSOLE_HEADER = "x-test-console";
-const MAX_AGE_MS = 5 * 60_000;
+/** The console signs a fresh header per request, so the window only has to cover clock skew and transit. */
+const MAX_AGE_MS = 30_000;
+
+/** Purpose-bound subkey, so ADMIN_KEY is never used directly as an HMAC key for the bypass. */
+function subkey(adminKey: string) {
+  return createHmac("sha256", adminKey).update("funnel-test-console-key-v1").digest();
+}
 
 function mac(adminKey: string, ts: string) {
-  return createHmac("sha256", adminKey).update(`test-console-v1:${ts}`).digest("hex");
+  return createHmac("sha256", subkey(adminKey)).update(`test-console-v1:${ts}`).digest("hex");
 }
 
 /** Header value the test console sends: `<unix ms>.<hmac>`. */

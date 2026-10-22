@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db, tables } from "@/platform/db";
 import { headObject } from "@/platform/r2";
 import { taskSchema } from "../schemas";
@@ -22,10 +22,13 @@ export async function finishApplication(applicantId: string, projectId: string, 
     .where(and(eq(tables.stages.projectId, projectId), eq(tables.stages.role, role)));
   const now = new Date();
   await db().transaction(async (tx) => {
-    await tx
+    // Check and set in one statement: of two overlapping calls only the first one writes events.
+    const moved = await tx
       .update(tables.applicants)
       .set({ ...data, stageId: stage?.id ?? null, lastStageChangeAt: now, funnelStep: "completed", completedAt: now })
-      .where(eq(tables.applicants.id, applicantId));
+      .where(and(eq(tables.applicants.id, applicantId), ne(tables.applicants.funnelStep, "completed")))
+      .returning({ id: tables.applicants.id });
+    if (moved.length === 0) return;
     await addEvent(applicantId, data.didTask ? "task_submitted" : "task_skipped", {}, tx);
     await addEvent(applicantId, "application_completed", {}, tx);
     if (stage) await addEvent(applicantId, "stage_changed", { from: null, to: stage.id }, tx);

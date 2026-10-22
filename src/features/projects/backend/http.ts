@@ -30,7 +30,8 @@ export async function respond(fn: () => Promise<unknown>, status = 200): Promise
       return NextResponse.json({ error: e.code, message: e.message }, { status: e.status, headers: { "Cache-Control": "no-store" } });
     }
     if (e instanceof ZodError) {
-      const issues = e.issues.map((i) => ({ path: i.path.join("."), message: i.message }));
+      // Field paths only. The validator's own wording would describe the schema to the caller.
+      const issues = e.issues.map((i) => ({ path: i.path.join(".") }));
       return NextResponse.json({ error: "invalid", message: "Some fields are not valid.", issues }, { status: 400, headers: { "Cache-Control": "no-store" } });
     }
     console.error("admin api error", e instanceof Error ? e.name : "unknown");

@@ -29,6 +29,13 @@ export function ApplicantDrawer({ applicantId, projectSlug, onClose, initialSend
   const stages = useMemo(() => record?.stages ?? [], [record]);
   const stageName = (id: string | null) => stages.find((s) => s.id === id)?.name ?? "Did not finish";
 
+  // List rows come without timeline and messages. Read them when the drawer opens and keep them fresh while it stays open.
+  useEffect(() => {
+    void actions.loadDetail(applicantId);
+    const timer = window.setInterval(() => void actions.loadDetail(applicantId), 15_000);
+    return () => window.clearInterval(timer);
+  }, [applicantId, actions]);
+
   const unread = a?.unreadReply ?? false;
   useEffect(() => {
     if (a && unread) actions.markRead(a.id);
@@ -68,17 +75,18 @@ export function ApplicantDrawer({ applicantId, projectSlug, onClose, initialSend
                 </p>
               )}
             </div>
-            <MessagesBlock a={a} onSend={setSendChannel} />
+            <MessagesBlock a={a} onSend={setSendChannel} loading={a.detail === false} />
             <ContactBlock a={a} />
-            <AnswersBlock a={a} />
+            <AnswersBlock a={a} questionIds={(record?.questions ?? []).map((q) => q.id)} />
             <TaskBlock a={a} />
             <ScoreNotes key={a.id} a={a} actions={actions} />
             <BookingBlock a={a} />
             <TimelineBlock a={a} stageName={stageName} />
             <DangerZone
-              onDelete={() => {
-                actions.remove(a.id);
-                onClose();
+              onDelete={async () => {
+                const failure = await actions.remove(a.id);
+                if (!failure) onClose();
+                return failure;
               }}
             />
           </div>

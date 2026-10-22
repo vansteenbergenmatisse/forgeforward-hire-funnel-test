@@ -13,20 +13,22 @@ test("retake once, then the retake button is gone", async ({ page }) => {
 
 test("no camera falls back to audio only", async ({ page }) => {
   await page.addInitScript(() => {
-    const md = navigator.mediaDevices;
-    const real = md.getUserMedia.bind(md);
-    md.getUserMedia = (c?: MediaStreamConstraints) =>
-      c?.video ? Promise.reject(new DOMException("No camera", "NotFoundError")) : real(c);
+    // Patch the prototype: WebKit ignores a getUserMedia assigned on the instance.
+    const proto = MediaDevices.prototype;
+    const real = proto.getUserMedia;
+    proto.getUserMedia = function (this: MediaDevices, c?: MediaStreamConstraints) {
+      return c?.video ? Promise.reject(new DOMException("No camera", "NotFoundError")) : real.call(this, c);
+    };
   });
   await page.goto(HARNESS);
   await page.getByRole("button", { name: "Turn on camera" }).click();
-  await expect(page.getByRole("heading", { name: "No camera? No problem" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No camera? No problem" })).toBeVisible({ timeout: 20_000 }); // Firefox opens the fake microphone slowly
   await expect(page.getByText("Audio only")).toBeVisible();
 });
 
 test("permission denied shows device help and Try again", async ({ page }) => {
   await page.addInitScript(() => {
-    navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException("Denied", "NotAllowedError"));
+    MediaDevices.prototype.getUserMedia = () => Promise.reject(new DOMException("Denied", "NotAllowedError"));
   });
   await page.goto(HARNESS);
   await page.getByRole("button", { name: "Turn on camera" }).click();

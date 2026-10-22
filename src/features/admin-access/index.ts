@@ -5,3 +5,5 @@ export {
   isValidCookie,
   isValidKey,
 } from "./gate";
+export { clearFailures, clientIp, isBlocked, recordFailure } from "./attempts";
+export { requireAdmin } from "./require";

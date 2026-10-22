@@ -21,5 +21,5 @@ export function validateReplyDays(raw: string): string | null {
 
 export function validateCalLink(raw: string): string | null {
   if (raw.trim() === "") return "Add your Cal.com event link. Interview invites use it.";
-  return normalizeCalLink(raw) ? null : "Use a full event link, like cal.com/forgeforward/interview.";
+  return normalizeCalLink(raw) ? null : "Use a Cal.com event link, like cal.com/forgeforward/interview.";
 }

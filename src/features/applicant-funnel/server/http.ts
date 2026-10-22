@@ -4,12 +4,30 @@ import { ApiError } from "./errors";
 
 const MAX_BODY_BYTES = 64 * 1024;
 
-/** Reads a small JSON body. Throws ApiError 400/413 on bad input. */
+/** Reads a small JSON body. Throws ApiError 400/413/415 on bad input. The size is counted in bytes while reading. */
 export async function readJson(req: Request): Promise<unknown> {
+  const type = req.headers.get("content-type") ?? "";
+  if (!/^application\/json\s*(;|$)/i.test(type)) throw new ApiError(415, "unsupported_type");
   const declared = Number(req.headers.get("content-length") ?? 0);
   if (declared > MAX_BODY_BYTES) throw new ApiError(413, "too_large");
-  const text = await req.text();
-  if (text.length > MAX_BODY_BYTES) throw new ApiError(413, "too_large");
+
+  let text = "";
+  if (req.body) {
+    const reader = req.body.getReader();
+    const decoder = new TextDecoder();
+    let bytes = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > MAX_BODY_BYTES) {
+        await reader.cancel();
+        throw new ApiError(413, "too_large");
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    text += decoder.decode();
+  }
   try {
     return text ? JSON.parse(text) : {};
   } catch {

@@ -73,7 +73,8 @@ function openTag(name: string, attrSource: string): string | null {
   if (name === "img") {
     const src = safeUrl(attrs.src ?? "", /^https?:\/\//i);
     if (!src) return null;
-    return `<img src="${escapeAttr(src)}" alt="${escapeAttr(decodeEntities(attrs.alt ?? ""))}">`;
+    // no-referrer keeps the admin and applicant page addresses out of requests to the image host.
+    return `<img src="${escapeAttr(src)}" alt="${escapeAttr(decodeEntities(attrs.alt ?? ""))}" referrerpolicy="no-referrer">`;
   }
   return `<${name}>`;
 }

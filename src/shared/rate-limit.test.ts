@@ -22,3 +22,17 @@ describe("takeRateLimit", () => {
     expect(await takeRateLimit(store, "b", rule)).toBe(true);
   });
 });
+
+describe("takeRateLimit under parallel calls", () => {
+  it("never lets more than max through when calls overlap", async () => {
+    const store = createMemoryRateLimitStore();
+    const results = await Promise.all(Array.from({ length: 20 }, () => takeRateLimit(store, "ip", rule)));
+    expect(results.filter(Boolean)).toHaveLength(5);
+  });
+  it("falls back to count then record for stores without tryRecord", async () => {
+    const mem = createMemoryRateLimitStore();
+    const store = { count: mem.count, record: mem.record };
+    for (let i = 0; i < 5; i++) expect(await takeRateLimit(store, "ip", rule)).toBe(true);
+    expect(await takeRateLimit(store, "ip", rule)).toBe(false);
+  });
+});

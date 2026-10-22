@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, tables } from "@/platform/db";
-import { deleteObject, signedGetUrl } from "@/platform/r2";
+import { deleteObject, listObjects, signedGetUrl } from "@/platform/r2";
 import type { ApplicantView } from "../types";
 import { getApplicant } from "./queries";
 
@@ -63,17 +63,49 @@ export function r2KeysOf(row: { videoKey: string | null; thumbKey: string | null
 }
 
 /**
+ * Keys of every file under the applicant's own R2 folders (earlier takes, replaced files). A folder counts only when
+ * its last segment is the applicant id, so a wrong key can never widen the delete to someone else's files.
+ */
+export async function strayApplicantKeys(
+  id: string,
+  row: { videoKey: string | null; thumbKey: string | null; taskFileKey: string | null },
+  list: (prefix: string) => Promise<string[]> = listAll,
+): Promise<string[]> {
+  const folders = new Set<string>();
+  for (const key of r2KeysOf(row)) {
+    const folder = key.slice(0, key.lastIndexOf("/") + 1);
+    if (folder.endsWith(`/${id}/`)) folders.add(folder);
+  }
+  const known = new Set(r2KeysOf(row));
+  const found: string[] = [];
+  for (const folder of folders) for (const key of await list(folder)) if (!known.has(key)) found.push(key);
+  return found;
+}
+
+async function listAll(prefix: string): Promise<string[]> {
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const page = await listObjects(prefix, { token });
+    keys.push(...page.objects.map((o) => o.key));
+    token = page.next;
+  } while (token);
+  return keys;
+}
+
+/**
  * Deletes an applicant. R2 files go first: if a delete fails we keep the row so nothing is orphaned,
  * and the caller gets `files_failed`. Events and messages cascade in the database.
  */
 export async function deleteApplicant(
   id: string,
   remove: (key: string) => Promise<void> = deleteObject,
+  list?: (prefix: string) => Promise<string[]>,
 ): Promise<{ ok: true } | { ok: false; error: "not_found" | "files_failed" }> {
   const row = await load(id);
   if (!row) return { ok: false, error: "not_found" };
   try {
-    for (const key of r2KeysOf(row)) await remove(key);
+    for (const key of [...r2KeysOf(row), ...(await strayApplicantKeys(id, row, list))]) await remove(key);
   } catch {
     return { ok: false, error: "files_failed" };
   }
@@ -83,15 +115,24 @@ export async function deleteApplicant(
 
 export type MediaKind = "video" | "thumb" | "task";
 
-/** Short-lived signed GET URL for the player, the thumbnail or the task file. */
+/**
+ * Signed GET URL for the player, the thumbnail or the task file. Short-lived: it works without the admin cookie.
+ * Long enough for a review session, because seeking asks R2 again with the same URL.
+ */
+export const ADMIN_MEDIA_TTL_SECONDS = 900;
+
 export async function signedMediaUrl(
   id: string,
   kind: MediaKind,
-  expiresIn = 3600,
+  expiresIn = ADMIN_MEDIA_TTL_SECONDS,
 ): Promise<{ url: string; expiresIn: number } | null> {
   const row = await load(id);
   if (!row) return null;
-  const key = kind === "video" ? (row.videoDeletedAt ? null : row.videoKey) : kind === "thumb" ? row.thumbKey : row.taskFileKey;
+  // Retention removes the video, thumbnail and task file together, so nothing is signed once it ran.
+  if (row.videoDeletedAt) return null;
+  const key = kind === "video" ? row.videoKey : kind === "thumb" ? row.thumbKey : row.taskFileKey;
   if (!key) return null;
-  return { url: await signedGetUrl(key, expiresIn), expiresIn };
+  // Only the task file is a download. Video and thumbnail stay inline so the player and <img> work.
+  const downloadName = kind === "task" ? (row.taskFileName ?? "task-file") : undefined;
+  return { url: await signedGetUrl(key, expiresIn, downloadName), expiresIn };
 }

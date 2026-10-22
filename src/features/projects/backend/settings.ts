@@ -37,7 +37,7 @@ export async function updateSettings(slug: string, patch: SettingsPatch): Promis
   if (patch.calLink !== undefined) {
     const raw = patch.calLink.trim();
     const link = raw === "" ? "" : normalizeCalLink(raw);
-    if (link === null) throw unprocessable("invalid_cal_link", "Use a full event link, like cal.com/forgeforward/interview.");
+    if (link === null) throw unprocessable("invalid_cal_link", "Use a Cal.com event link, like cal.com/forgeforward/interview.");
     set.calLink = link;
   }
   if (patch.replyDays !== undefined) set.replyDays = patch.replyDays;

@@ -7,7 +7,16 @@ import { startRecorder, withDuration, type RunningRecorder } from "./recorder";
 import { grabThumbnail, shouldGrabThumb } from "./thumbnail";
 import { RecordScreen } from "./ui/record-screen";
 
-export type RecordingResult = { blob: Blob; thumb: Blob | null; mime: string; seconds: number; hidden: boolean };
+export type RecordingResult = {
+  blob: Blob;
+  thumb: Blob | null;
+  mime: string;
+  seconds: number;
+  /** The recording did not count: the tab was hidden, or the recorder or camera stopped by itself. */
+  hidden: boolean;
+  /** The browser could not start a recorder at all. Retrying will not help. */
+  startFailed?: boolean;
+};
 
 type Props = {
   project: FunnelProject;
@@ -51,15 +60,22 @@ export function RecordingStage({ project, stream, audioOnly, onEnded }: Props) {
     };
 
     try {
-      recorder = startRecorder(stream, audioOnly);
+      // Recording can stop on its own (rotation, a call, a lost camera). Count it as a recording that did not happen.
+      recorder = startRecorder(stream, audioOnly, () => void finish(true));
     } catch {
-      endedRef.current({ blob: new Blob([]), thumb: null, mime: "", seconds: 0, hidden: true });
+      endedRef.current({ blob: new Blob([]), thumb: null, mime: "", seconds: 0, hidden: true, startFailed: true });
       return;
     }
 
     const wake = (navigator as Navigator & { wakeLock?: { request: (t: "screen") => Promise<WakeLockSentinelLike> } }).wakeLock;
     if (wake) {
-      wake.request("screen").then((l) => (wakeLock = l)).catch(() => {});
+      wake
+        .request("screen")
+        .then((l) => {
+          if (cancelled) void l.release().catch(() => {}); // the stage is already gone: do not keep the screen on
+          else wakeLock = l;
+        })
+        .catch(() => {});
     }
 
     const timer = setInterval(() => {
@@ -76,6 +92,7 @@ export function RecordingStage({ project, stream, audioOnly, onEnded }: Props) {
       if (document.hidden) void finish(true);
     };
     document.addEventListener("visibilitychange", onVisibility);
+    if (document.hidden) void finish(true); // the page went to the background before the recorder started
     finishRef.current = () => void finish(false);
 
     return () => {

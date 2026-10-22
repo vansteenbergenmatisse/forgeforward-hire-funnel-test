@@ -1,6 +1,15 @@
 const ALLOWED_TAGS = new Set(["P", "H1", "H2", "H3", "STRONG", "B", "EM", "I", "UL", "OL", "LI", "A", "IMG", "BR"]);
 const SAFE_URL = /^(https?:|mailto:)/i;
 
+/** Images load over https only. Plain http can be rewritten on the way, and any host named in the task text sees the applicant's IP. */
+export function isSafeImageSrc(src: string): boolean {
+  try {
+    return new URL(src).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /** True when the text contains markup. Plain text from older projects is rendered as paragraphs instead. */
 export function looksLikeHtml(text: string): boolean {
   return /<\/?[a-z][^>]*>/i.test(text);
@@ -34,8 +43,10 @@ function cleanNode(node: Node, doc: Document): Node | null {
   }
   if (el.tagName === "IMG") {
     const src = el.getAttribute("src") ?? "";
-    if (!/^https?:/i.test(src)) return null;
+    if (!isSafeImageSrc(src)) return null;
     out.setAttribute("src", src);
+    out.setAttribute("referrerpolicy", "no-referrer");
+    out.setAttribute("loading", "lazy");
     out.setAttribute("alt", el.getAttribute("alt") ?? "");
   }
   el.childNodes.forEach((c) => {

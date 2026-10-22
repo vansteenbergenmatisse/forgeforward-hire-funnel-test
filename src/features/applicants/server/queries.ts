@@ -14,14 +14,20 @@ export type ApplicantListFilter = {
   q?: string;
   includeTest?: boolean;
   limit?: number;
+  /** false = list rows without events and messages (the board does not need them). Default true. */
+  detail?: boolean;
 };
+
+export const DEFAULT_LIST_LIMIT = 2000;
+export const MAX_LIST_LIMIT = 5000;
 
 function escapeLike(s: string): string {
   return s.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
-async function hydrate(rows: { a: typeof applicants.$inferSelect; slug: string }[]): Promise<ApplicantView[]> {
+async function hydrate(rows: { a: typeof applicants.$inferSelect; slug: string }[], detail = true): Promise<ApplicantView[]> {
   if (rows.length === 0) return [];
+  if (!detail) return rows.map(({ a, slug }) => toApplicantView(a, slug, [], [], false));
   const ids = rows.map((r) => r.a.id);
   const [events, msgs] = await Promise.all([
     db().select().from(applicantEvents).where(inArray(applicantEvents.applicantId, ids)),
@@ -38,6 +44,12 @@ async function hydrate(rows: { a: typeof applicants.$inferSelect; slug: string }
 }
 
 export async function listApplicants(f: ApplicantListFilter = {}): Promise<ApplicantView[]> {
+  return (await listApplicantsPage(f)).applicants;
+}
+
+/** Newest first. `truncated` is true when more applicants match than the limit allows. */
+export async function listApplicantsPage(f: ApplicantListFilter = {}): Promise<{ applicants: ApplicantView[]; truncated: boolean }> {
+  const limit = Math.min(f.limit ?? DEFAULT_LIST_LIMIT, MAX_LIST_LIMIT);
   const where: SQL[] = [];
   if (f.projectSlug) where.push(eq(projects.slug, f.projectSlug));
   if (f.stageId) where.push(eq(applicants.stageId, f.stageId));
@@ -61,8 +73,9 @@ export async function listApplicants(f: ApplicantListFilter = {}): Promise<Appli
     .innerJoin(projects, eq(projects.id, applicants.projectId))
     .where(and(...where))
     .orderBy(desc(applicants.createdAt))
-    .limit(Math.min(f.limit ?? 2000, 5000));
-  return hydrate(rows);
+    .limit(limit + 1);
+  const truncated = rows.length > limit;
+  return { applicants: await hydrate(rows.slice(0, limit), f.detail !== false), truncated };
 }
 
 export async function getApplicant(id: string): Promise<ApplicantView | null> {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { parsePhone } from "@/shared/phone";
 import type { QuestionDef } from "@/features/projects";
+import { ANSWER_LIMITS } from "../schemas";
 
 export type AnswerValue = string | number | boolean | string[];
 
@@ -29,7 +30,19 @@ export const MSG = {
   consent: "Tick the box to continue",
   required: "Answer this question to continue",
   number: "Enter a number",
+  shortText: `Keep it under ${ANSWER_LIMITS.shortText} characters`,
+  longText: `Keep it under ${ANSWER_LIMITS.longText.toLocaleString("en-US")} characters`,
 } as const;
+
+/** Reads a typed number. Accepts a comma as the decimal mark. Returns null when it is not a finite number. */
+export function parseNumberAnswer(v: AnswerValue | undefined): number | null {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v !== "string") return null;
+  const s = v.trim().replace(",", ".");
+  if (!/^[+-]?(\d+\.?\d*|\.\d+)$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
 
 const emailSchema = z.email();
 
@@ -75,7 +88,9 @@ export function validateField(key: string, v: FormValues, questions: QuestionDef
       if (!q || q.archived) return null;
       const a = v.answers[q.id];
       if (isEmpty(a)) return q.required ? MSG.required : null;
-      if (q.type === "number" && (typeof a !== "number" || Number.isNaN(a))) return MSG.number;
+      if (q.type === "number" && parseNumberAnswer(a) === null) return MSG.number;
+      if (q.type === "short_text" && typeof a === "string" && a.length > ANSWER_LIMITS.shortText) return MSG.shortText;
+      if (q.type === "long_text" && typeof a === "string" && a.length > ANSWER_LIMITS.longText) return MSG.longText;
       return null;
     }
   }

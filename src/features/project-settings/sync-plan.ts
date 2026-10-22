@@ -1,4 +1,5 @@
 import { normalizeCalLink, type ProjectBundle, type ProjectDef, type QuestionDef, type StageDef, type StageRole, type TemplateDef } from "@/features/projects";
+import { INTRO_MAX, THANK_YOU_MAX, VIDEO_PROMPT_MAX } from "./logic/limits";
 import { validateProjectName, validateReplyDays } from "./logic/general";
 import { validateQuestion, normalizeQuestion } from "./logic/questions";
 import { validateStageName } from "./logic/stages";
@@ -16,8 +17,15 @@ export type SyncOp = {
   method: "POST" | "PATCH" | "DELETE";
   path: string;
   body?: unknown;
+  /** What the request changes. When the server refuses it, this part of the local copy is put back to the server's version. */
+  entity: SyncEntity;
   apply: (b: ProjectBundle) => ProjectBundle;
 };
+
+export type SyncEntity =
+  | { kind: "project"; fields: string[] }
+  | { kind: "stage" | "question" | "template"; id: string }
+  | { kind: "order"; list: "stages" | "questions" };
 
 export type StageMoves = ReadonlyMap<string, string>;
 
@@ -34,7 +42,7 @@ function projectOps(base: ProjectBundle, next: ProjectBundle): SyncOp[] {
   take("name", validateProjectName(n.name) === null);
   take("status");
   take("handoffEnabled");
-  take("intro", n.intro.length <= 2000);
+  take("intro", n.intro.length <= INTRO_MAX);
   if (n.calLink !== b.calLink) {
     const link = n.calLink.trim() === "" ? "" : normalizeCalLink(n.calLink);
     if (link !== null) patch.calLink = link;
@@ -44,8 +52,8 @@ function projectOps(base: ProjectBundle, next: ProjectBundle): SyncOp[] {
   take("prepSeconds", !video.prepSeconds);
   take("maxRecordSeconds", !video.maxRecordSeconds);
   take("retakesAllowed", !video.retakesAllowed);
-  take("videoPrompt", n.videoPrompt.trim() !== "" && n.videoPrompt.length <= 600);
-  take("thankYouText", validateThankYou(n.thankYouText) === null && n.thankYouText.length <= 1000);
+  take("videoPrompt", n.videoPrompt.trim() !== "" && n.videoPrompt.length <= VIDEO_PROMPT_MAX);
+  take("thankYouText", validateThankYou(n.thankYouText) === null && n.thankYouText.length <= THANK_YOU_MAX);
 
   // Task fields travel together, and a task that is on must be complete.
   const taskKeys = ["taskEnabled", "taskTitle", "taskBody", "taskAllowText", "taskAllowLink", "taskAllowFile"] as const;
@@ -60,6 +68,7 @@ function projectOps(base: ProjectBundle, next: ProjectBundle): SyncOp[] {
       method: "PATCH",
       path: `/api/admin/settings/${base.def.slug}`,
       body: patch,
+      entity: { kind: "project", fields: Object.keys(patch) },
       apply: (x) => ({ ...x, def: { ...x.def, ...patch } as ProjectDef }),
     },
   ];
@@ -73,6 +82,7 @@ function orderOps<T extends { id: string }>(slug: string, kind: "stages" | "ques
       method: "POST",
       path: `/api/admin/${kind}/reorder`,
       body: { projectSlug: slug, ids: want },
+      entity: { kind: "order", list: kind },
       apply: (x) => ({ ...x, [kind]: want.map((id) => (x[kind] as unknown as T[]).find((i) => i.id === id)).filter(Boolean) }) as ProjectBundle,
     },
   ];
@@ -90,6 +100,7 @@ function stageOps(base: ProjectBundle, next: ProjectBundle, moves: StageMoves): 
       method: "POST",
       path: "/api/admin/stages",
       body: { id: s.id, projectSlug: slug, name: s.name, color: s.color, isPositive: s.isPositive },
+      entity: { kind: "stage", id: s.id },
       apply: (x) => ({ ...x, stages: [...x.stages, { ...s, role: null }] }),
     });
   }
@@ -116,6 +127,7 @@ function stageOps(base: ProjectBundle, next: ProjectBundle, moves: StageMoves): 
       method: "PATCH",
       path: `/api/admin/stages/${s.id}`,
       body: patch,
+      entity: { kind: "stage", id: s.id },
       apply: (x) => {
         let stages = x.stages.map((st) => (st.id === s.id ? { ...st, ...patch } : st));
         if (roleChanged) {
@@ -133,6 +145,7 @@ function stageOps(base: ProjectBundle, next: ProjectBundle, moves: StageMoves): 
     ops.push({
       method: "DELETE",
       path: `/api/admin/stages/${s.id}${moveTo ? `?moveTo=${moveTo}` : ""}`,
+      entity: { kind: "stage", id: s.id },
       apply: (x) => ({ ...x, stages: x.stages.filter((st) => st.id !== s.id) }),
     });
   }
@@ -155,6 +168,7 @@ function questionOps(base: ProjectBundle, next: ProjectBundle): SyncOp[] {
       method: "POST",
       path: "/api/admin/questions",
       body: { id: q.id, projectSlug: slug, label: q.label, helpText: q.helpText, type: q.type, options: q.options, required: q.required },
+      entity: { kind: "question", id: q.id },
       apply: (x) => ({ ...x, questions: [...x.questions, { ...q, archived: false }] }),
     });
     if (raw.archived) {
@@ -162,6 +176,7 @@ function questionOps(base: ProjectBundle, next: ProjectBundle): SyncOp[] {
         method: "PATCH",
         path: `/api/admin/questions/${q.id}`,
         body: { archived: true },
+        entity: { kind: "question", id: q.id },
         apply: (x) => ({ ...x, questions: x.questions.map((i) => (i.id === q.id ? { ...i, archived: true } : i)) }),
       });
     }
@@ -179,6 +194,7 @@ function questionOps(base: ProjectBundle, next: ProjectBundle): SyncOp[] {
       method: "PATCH",
       path: `/api/admin/questions/${raw.id}`,
       body: patch,
+      entity: { kind: "question", id: raw.id },
       apply: (x) => ({ ...x, questions: x.questions.map((i) => (i.id === raw.id ? { ...i, ...patch } : i)) }),
     });
   }
@@ -188,6 +204,7 @@ function questionOps(base: ProjectBundle, next: ProjectBundle): SyncOp[] {
     ops.push({
       method: "DELETE",
       path: `/api/admin/questions/${q.id}`,
+      entity: { kind: "question", id: q.id },
       apply: (x) => ({ ...x, questions: x.questions.filter((i) => i.id !== q.id) }),
     });
   }
@@ -211,6 +228,7 @@ function templateOps(base: ProjectBundle, next: ProjectBundle): SyncOp[] {
       ops.push({
         method: "POST",
         path: "/api/admin/templates",
+        entity: { kind: "template", id: t.id },
         body: { id: t.id, projectSlug: slug, channel: t.channel, name: t.name.trim(), subject: t.subject, body: t.body, ...(t.channel === "whatsapp" ? waFields(t) : {}) },
         apply: (x) => ({ ...x, templates: [...x.templates, t] }),
       });
@@ -232,6 +250,7 @@ function templateOps(base: ProjectBundle, next: ProjectBundle): SyncOp[] {
       method: "PATCH",
       path: `/api/admin/templates/${t.id}`,
       body: patch,
+      entity: { kind: "template", id: t.id },
       apply: (x) => ({ ...x, templates: x.templates.map((i) => (i.id === t.id ? t : i)) }),
     });
   }
@@ -241,6 +260,7 @@ function templateOps(base: ProjectBundle, next: ProjectBundle): SyncOp[] {
     ops.push({
       method: "DELETE",
       path: `/api/admin/templates/${t.id}`,
+      entity: { kind: "template", id: t.id },
       apply: (x) => ({ ...x, templates: x.templates.filter((i) => i.id !== t.id) }),
     });
   }
