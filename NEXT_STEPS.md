@@ -29,7 +29,7 @@ I create `TEST_DATABASE_URL` (a second Neon branch or database) and `ADMIN_KEY` 
 
 | # | Task | How |
 |---|---|---|
-| A7 | Add the DNS record for `apply.forgeforward.io` | I will give you the exact record from Vercel (Project, Settings, Domains). Add it where your DNS is managed. |
+| A7 (domain added to Vercel, DNS record missing) | Add the DNS record for `apply.forgeforward.io` | I will give you the exact record from Vercel (Project, Settings, Domains). Add it where your DNS is managed. |
 | A8 | Tell me if you want a different domain | Otherwise `apply.forgeforward.io`. |
 
 ### 3. Start early because they are SLOW
@@ -79,7 +79,7 @@ Built, tested and committed (2026-10-21): Phase 1, Phase 2 funnel API, Phase 3 a
 - [x] Live test console on production (2026-10-22): 13 of 13 pass (8 and 9 skipped on purpose), then 0 test rows and 0 files left. The new `production` branch saw the test applicant.
 - [x] Production has its own Neon branch `production` (schema-only copy, migrations 0000 and 0001 recorded, seeded, Cal link set to https://cal.com/matisseforgeforward/interview-appointment-setter). Vercel Production reads it through `APP_DATABASE_URL` (the app prefers it over `DATABASE_URL`, because the Neon integration rewrites `DATABASE_URL` on every production deploy); Preview and Development still use the Development branch.
 - [x] `applicants.task_file_name` and `task_file_bytes` added (migration `0001_minor_black_panther`, applied to test, Development and Production). Optional `unmatched_bookings.linked_applicant_id`, `dismissed_at` stay inside the payload JSON for now.
-- [ ] Hired and Rejected are matched by stage NAME (no role column). Keep those names for terminal stages or add roles.
+- [x] Stages already have a `role` column (unique per project), so Hired and Rejected do not depend on names.
 - [x] Template validation: the server now rejects unknown `{variables}` with a 400 (`unknown_variables`). Not committed yet.
 - [x] First production backup made by hand (`backups/forge-hire-20261022T135502Z.sql.gz`). GitHub backup secrets are set; the nightly Action still has to run once.
 - [ ] Final: run the test console on production (13 green, then 0 test rows left), confirm last night's backup and the restore proof, decide on the dev-only route `/dev/video-flow` (404 in production).
