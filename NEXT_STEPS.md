@@ -29,7 +29,7 @@ I create `TEST_DATABASE_URL` (a second Neon branch or database) and `ADMIN_KEY` 
 
 | # | Task | How |
 |---|---|---|
-| A7 (domain added to Vercel, DNS record missing) | Add the DNS record for `apply.forgeforward.io` | I will give you the exact record from Vercel (Project, Settings, Domains). Add it where your DNS is managed. |
+| A7 DONE | Add the DNS record for `apply.forgeforward.io` | I will give you the exact record from Vercel (Project, Settings, Domains). Add it where your DNS is managed. |
 | A8 | Tell me if you want a different domain | Otherwise `apply.forgeforward.io`. |
 
 ### 3. Start early because they are SLOW
@@ -53,7 +53,7 @@ I create `TEST_DATABASE_URL` (a second Neon branch or database) and `ADMIN_KEY` 
 
 | # | Task | How |
 |---|---|---|
-| A20 DONE | Vercel env vars | Set. Change `APP_URL` on Production to `https://apply.forgeforward.io` when the domain is live (A7). |
+| A20 DONE | Vercel env vars | Set. `APP_URL` on Production is now `https://apply.forgeforward.io` (2026-10-22). |
 | A21 DONE | Production Neon branch URL | Neon, branch for production, Connect, pooled URL. In Vercel, project Settings, Environment Variables, edit `DATABASE_URL` and `DATABASE_URL_UNPOOLED` for Production only. Today all three environments share the Development URL. |
 | A22 DONE | GitHub repo secrets for the nightly backup | GitHub repo, Settings, Secrets and variables, Actions: `DATABASE_URL_UNPOOLED` (Production), `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`. |
 | A23 | Add the Vercel URL to R2 CORS | Cloudflare, R2, `forge-hire`, Settings, CORS Policy (already lists localhost:3000, forge-hire.vercel.app, apply.forgeforward.io). |
