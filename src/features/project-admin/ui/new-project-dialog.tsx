@@ -11,7 +11,7 @@ type Props = {
   open: boolean;
   projects: ProjectRecord[];
   onClose: () => void;
-  onCreate: (input: CreateProjectInput) => void;
+  onCreate: (input: CreateProjectInput) => void | Promise<void>;
   returnFocusRef: React.RefObject<HTMLElement | null>;
 };
 
@@ -37,18 +37,23 @@ function NewProjectForm({ projects, onClose, onCreate }: Props) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
       setError("Give the project a name.");
       return;
     }
     setBusy(true);
-    onCreate({ name: name.trim(), mode, sourceSlug: mode === "duplicate" ? source : undefined });
+    try {
+      await onCreate({ name: name.trim(), mode, sourceSlug: mode === "duplicate" ? source : undefined });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create the project.");
+      setBusy(false);
+    }
   }
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+    <form onSubmit={(e) => void submit(e)} noValidate className="flex flex-col gap-4">
       <Field label="Role name" htmlFor={`${uid}-name`} error={error}>
         <TextInput
           id={`${uid}-name`}

@@ -136,12 +136,22 @@ function SlugField({ slug }: { slug: string }) {
   const [draft, setDraft] = useState(slug);
   const [touched, setTouched] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
-  const error = touched ? validateSlug(draft) : null;
+  const error = serverError ?? (touched ? validateSlug(draft) : null);
   const changed = draft !== slug;
 
-  function confirm() {
-    renameSettingsSlug(slug, draft);
+  async function confirm() {
+    setSaving(true);
+    const res = await renameSettingsSlug(slug, draft);
+    setSaving(false);
+    if (!res.ok) {
+      setServerError(res.message);
+      setConfirming(false);
+      return;
+    }
+    setServerError(null);
     setConfirming(false);
     setEditing(false);
     router.replace(`/admin/p/${draft}/settings?tab=general`);
@@ -155,7 +165,10 @@ function SlugField({ slug }: { slug: string }) {
         value={editing ? draft : slug}
         readOnly={!editing}
         error={error ?? undefined}
-        onChange={(e) => setDraft(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+        onChange={(e) => {
+          setServerError(null);
+          setDraft(e.target.value.toLowerCase().replace(/\s+/g, "-"));
+        }}
         onBlur={() => editing && setTouched(true)}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
@@ -213,7 +226,7 @@ function SlugField({ slug }: { slug: string }) {
           </>
         )}
       </div>
-      <ConfirmDialog open={confirming} title="Change the link slug?" confirmLabel="Change slug" tone="primary" onConfirm={confirm} onCancel={() => setConfirming(false)}>
+      <ConfirmDialog open={confirming} title="Change the link slug?" confirmLabel="Change slug" tone="primary" confirmDisabled={saving} onConfirm={() => void confirm()} onCancel={() => setConfirming(false)}>
         <p>
           Links you already shared stop working. Anyone who opens <span className="font-mono text-charcoal">/{slug}</span> sees &ldquo;This page does not exist.&rdquo;
         </p>

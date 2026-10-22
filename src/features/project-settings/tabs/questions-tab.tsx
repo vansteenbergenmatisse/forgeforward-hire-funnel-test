@@ -25,7 +25,7 @@ export function QuestionsTab({ api }: { api: SettingsApi }) {
   const editedQuestion = editing?.kind === "edit" ? questions.find((q) => q.id === editing.id && !q.archived) : undefined;
 
   function startNew() {
-    const q = blankQuestion(`q-${Date.now().toString(36)}`);
+    const q = blankQuestion(crypto.randomUUID());
     setNewDraft({ q, errors: { label: "x" } });
     setSubmitted(false);
     setEditing({ kind: "new", id: q.id });

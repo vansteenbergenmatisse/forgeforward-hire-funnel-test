@@ -6,7 +6,7 @@ import { Button } from "@/components/ui";
 import type { SystemAlert } from "../types";
 
 /** Red banner for an unresolved system error or a missing backup. Resolving clears it. */
-export function AlertBanner({ alert, onResolve }: { alert: SystemAlert; onResolve: () => void }) {
+export function AlertBanner({ alert, onResolve }: { alert: SystemAlert; onResolve?: () => void }) {
   return (
     <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl bg-signal px-4 py-3 text-sm font-semibold text-white">
       <AlertTriangle className="size-[18px] shrink-0" aria-hidden />
@@ -17,9 +17,11 @@ export function AlertBanner({ alert, onResolve }: { alert: SystemAlert; onResolv
         <Link href="/admin/test" className="inline-flex h-8 items-center rounded-lg bg-white px-3 text-[13px] font-extrabold text-signal-deep hover:bg-ivory">
           Open test console
         </Link>
-        <Button variant="ghost" size="sm" onClick={onResolve} className="text-white hover:bg-white/15">
-          Mark resolved
-        </Button>
+        {onResolve ? (
+          <Button variant="ghost" size="sm" onClick={onResolve} className="text-white hover:bg-white/15">
+            Mark resolved
+          </Button>
+        ) : null}
       </span>
     </div>
   );

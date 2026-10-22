@@ -1,5 +1,5 @@
 import { MOCK_PROJECT, MOCK_QUESTIONS, MOCK_STAGES, MOCK_TEMPLATES } from "@/features/projects";
-import type { ProjectRecord, ProjectsState, SystemAlert, UnmatchedBooking } from "./types";
+import type { ProjectRecord, SystemAlert, UnmatchedBooking } from "./types";
 
 const SALES_REP: ProjectRecord = {
   def: {
@@ -39,4 +39,3 @@ export const INITIAL_ALERTS: SystemAlert[] = [
   { id: "al-backup", title: "No backup in the last 26 hours.", detail: "The 04:00 UTC backup did not run. Open the test console to check it.", resolved: false },
 ];
 
-export const INITIAL_STATE: ProjectsState = { projects: INITIAL_PROJECTS, bookings: INITIAL_BOOKINGS, alerts: INITIAL_ALERTS };

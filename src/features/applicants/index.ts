@@ -4,11 +4,15 @@ export type {
   ApplicantActions,
   AnswerView,
   BookingStatus,
+  LinkableBooking,
+  UnmatchedBookingView,
   MediaView,
   MessageRow,
   TimelineEvent,
 } from "./types";
 export { useApplicants, getApplicantsSnapshot, resetMockData } from "./store";
+export { applicantsApi } from "./api-client";
+export type { BookingEvent, BookingTrigger } from "./booking-rules";
 export { MOCK_NOW } from "./mock";
 export {
   RETENTION_DAYS,

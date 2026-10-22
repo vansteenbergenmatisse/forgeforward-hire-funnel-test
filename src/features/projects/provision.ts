@@ -5,8 +5,8 @@ import {
   DEFAULT_STAGES,
   DEFAULT_TEMPLATE,
   DEFAULT_THANK_YOU,
-  paragraphDoc,
 } from "./defaults";
+import { textToHtml } from "./sanitize-html";
 
 /** Creates the Appointment Setter project with every default. Skips when the slug exists. */
 export async function seedAppointmentSetter(): Promise<{ created: boolean; projectId: string }> {
@@ -27,7 +27,7 @@ export async function seedAppointmentSetter(): Promise<{ created: boolean; proje
         videoPrompt: APPOINTMENT_SETTER.videoPrompt,
         taskEnabled: true,
         taskTitle: APPOINTMENT_SETTER.taskTitle,
-        taskContent: paragraphDoc(APPOINTMENT_SETTER.taskText),
+        taskContent: { html: textToHtml(APPOINTMENT_SETTER.taskText) },
         thankYouText: DEFAULT_THANK_YOU,
       })
       .returning({ id: tables.projects.id });

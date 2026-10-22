@@ -1,4 +1,5 @@
 import type { STAGE_ROLES } from "@/platform/db/schema";
+import type { ProjectDef } from "./types";
 
 export const DEFAULT_STAGES: {
   name: string;
@@ -44,3 +45,23 @@ export const APPOINTMENT_SETTER = {
 export function paragraphDoc(text: string) {
   return { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text }] }] };
 }
+
+/** Fixed fields of a blank project. Name and slug are set on create. */
+export const BLANK_PROJECT_DEF: Omit<ProjectDef, "slug" | "name"> = {
+  status: "open",
+  intro: "",
+  calLink: "",
+  videoPrompt: "Introduce yourself in 60 seconds. Who are you? Where do you live? Why would you be a great fit?",
+  prepSeconds: 60,
+  maxRecordSeconds: 60,
+  retakesAllowed: 1,
+  taskEnabled: false,
+  taskTitle: "",
+  taskBody: "",
+  taskAllowText: true,
+  taskAllowLink: true,
+  taskAllowFile: false,
+  thankYouText: DEFAULT_THANK_YOU,
+  replyDays: 5,
+  handoffEnabled: true,
+};

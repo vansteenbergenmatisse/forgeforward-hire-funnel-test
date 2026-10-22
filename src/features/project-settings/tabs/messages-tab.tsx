@@ -32,7 +32,7 @@ export function MessagesTab({ api }: { api: SettingsApi }) {
   const patch = (id: string, p: Partial<TemplateDef>) => api.update((d) => ({ ...d, templates: d.templates.map((t) => (t.id === id ? { ...t, ...p } : t)) }));
 
   function add() {
-    const id = `tpl-${Date.now().toString(36)}`;
+    const id = crypto.randomUUID();
     api.update((d) => ({ ...d, templates: [...d.templates, newTemplate(channel, id, d.templates)] }));
     setSelectedId(id);
     setFreshId(id);

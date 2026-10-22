@@ -77,4 +77,22 @@ export type ApplicantActions = {
   remove(id: string): void;
   /** Adds a card to the board from "Did not finish". */
   placeOnBoard(id: string, stageId: string): void;
+  /** Links an unmatched Cal.com booking to an applicant: saves the booking, moves the card and adds the timeline event. */
+  linkBooking(id: string, booking: LinkableBooking): void;
+};
+
+/** The unmatched booking the user picked. `id` is the unmatched_bookings row. */
+export type LinkableBooking = { id: string; start: string; end?: string; title?: string };
+
+/** Row of the "Unmatched bookings" box. */
+export type UnmatchedBookingView = {
+  id: string;
+  email: string;
+  title: string;
+  /** ISO start time. */
+  start: string;
+  /** Display text for the slot. */
+  when: string;
+  linkedApplicantId?: string;
+  dismissed?: boolean;
 };

@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -52,4 +53,33 @@ export async function putObject(key: string, body: Uint8Array | string, contentT
 
 export async function deleteObject(key: string) {
   await s3().send(new DeleteObjectCommand({ Bucket: env().R2_BUCKET, Key: key }));
+}
+
+export type ListedObject = { key: string; bytes: number; lastModified: Date };
+
+/** One page of keys under a prefix. Pass the returned `next` to continue. */
+export async function listObjects(
+  prefix: string,
+  opts: { token?: string; max?: number } = {},
+): Promise<{ objects: ListedObject[]; next?: string }> {
+  const r = await s3().send(
+    new ListObjectsV2Command({
+      Bucket: env().R2_BUCKET,
+      Prefix: prefix,
+      ContinuationToken: opts.token,
+      MaxKeys: opts.max ?? 1000,
+    }),
+  );
+  return {
+    objects: (r.Contents ?? []).flatMap((o) =>
+      o.Key ? [{ key: o.Key, bytes: o.Size ?? 0, lastModified: o.LastModified ?? new Date(0) }] : [],
+    ),
+    next: r.IsTruncated ? r.NextContinuationToken : undefined,
+  };
+}
+
+export async function getObjectBytes(key: string): Promise<Uint8Array> {
+  const r = await s3().send(new GetObjectCommand({ Bucket: env().R2_BUCKET, Key: key }));
+  if (!r.Body) throw new Error("Empty object body");
+  return r.Body.transformToByteArray();
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { idleRows } from "./checks";
+import { createHttpBackend } from "./http-backend";
 import { createMockBackend } from "./mock-backend";
 import { runSequence } from "./sequence";
 import { summarize, summaryText } from "./summary";
@@ -22,25 +23,43 @@ export function useTestConsole() {
 
   const aborter = useRef<AbortController | null>(null);
 
-  const [backend] = useState(() => createMockBackend());
+  // Real HTTP runner by default. NEXT_PUBLIC_TEST_CONSOLE=mock keeps the simulated one for front-end work without a backend.
+  const [{ backend, mock, loadStatus }] = useState(() => {
+    if (process.env.NEXT_PUBLIC_TEST_CONSOLE === "mock") {
+      const m = createMockBackend();
+      return { backend: m, mock: m, loadStatus: async () => null };
+    }
+    const h = createHttpBackend();
+    return { backend: h, mock: null, loadStatus: h.loadStatus };
+  });
+  const [, setStatusTick] = useState(0);
   const changeSimulate = useCallback(
     (v: boolean) => {
-      backend.setSimulateFailure(v);
+      mock?.setSimulateFailure(v);
       setSimulateFailure(v);
     },
-    [backend],
+    [mock],
   );
 
-  const refreshCounts = useCallback(() => backend.testData.counts().then(setCounts), [backend]);
+  const refreshCounts = useCallback(() => backend.testData.counts().then(setCounts).catch(() => undefined), [backend]);
 
   useEffect(() => {
     let live = true;
+    void loadStatus().then((st) => {
+      if (!live) return;
+      if (st) setCounts(st.counts);
+      setStatusTick((n) => n + 1);
+    });
+    if (!mock) return () => {
+      live = false;
+      aborter.current?.abort();
+    };
     backend.testData.counts().then((c) => live && setCounts(c));
     return () => {
       live = false;
       aborter.current?.abort();
     };
-  }, [backend]);
+  }, [backend, loadStatus, mock]);
 
   const run = useCallback(async () => {
     if (running) return;
@@ -69,9 +88,13 @@ export function useTestConsole() {
 
   const confirmDelete = useCallback(async () => {
     setDeleteStep("deleting");
-    setCounts(await backend.testData.deleteAll());
+    try {
+      setCounts(await backend.testData.deleteAll());
+    } catch {
+      await refreshCounts();
+    }
     setDeleteStep("done");
-  }, [backend]);
+  }, [backend, refreshCounts]);
 
   const summary = useMemo(() => summarize(rows), [rows]);
 
@@ -82,7 +105,7 @@ export function useTestConsole() {
     summary,
     announcement: running ? "Running the full test." : summaryText(summary, everRun),
     simulateFailure,
-    setSimulateFailure: changeSimulate,
+    setSimulateFailure: mock ? changeSimulate : undefined,
     run,
     feedback,
     sendTest,

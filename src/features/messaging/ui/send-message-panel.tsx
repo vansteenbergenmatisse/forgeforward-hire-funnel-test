@@ -8,6 +8,7 @@ import type { ApplicantActions, ApplicantView } from "@/features/applicants";
 import type { Channel, TemplateDef } from "@/features/projects";
 import { getSendMode } from "../send-mode";
 import { sendMessage } from "../send-message";
+import { sendViaApi } from "../send-client";
 import { validateOutgoing } from "../prepare-message";
 import { whatsappWindow, whatsappWindowText } from "../whatsapp-window";
 import { SendSuccess } from "./send-success";
@@ -30,9 +31,13 @@ export function SendMessagePanel({ applicant, project, templates, channel, actio
   const mode = getSendMode(channel);
   const d = useDraft(applicant, project, templates, channel);
   const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [sentMode, setSentMode] = useState(mode);
   const [now] = useState(() => new Date());
 
-  if (sent) return <SendSuccess channel={channel} mode={mode} onBack={onBack} />;
+  if (sent) return <SendSuccess channel={channel} mode={sentMode} onBack={onBack} />;
 
   const win = channel === "whatsapp" ? whatsappWindow(applicant.messages, now) : null;
   const missing = d.prepared && !d.prepared.ok ? d.prepared.message : null;
@@ -41,20 +46,63 @@ export function SendMessagePanel({ applicant, project, templates, channel, actio
   const target = channel === "email" ? applicant.email : applicant.phoneE164;
   const usedVars = d.prepared?.ok ? d.prepared.used : [];
 
-  function send() {
-    if (blocking) return;
+  function openUrl(url: string) {
+    try {
+      window.open(url, "_blank", "noopener");
+    } catch {
+      /* popup blocked: the message is still saved */
+    }
+  }
+
+  const apiInput = (test: boolean) => ({
+    applicantId: applicant.id,
+    channel,
+    templateId: d.template?.id,
+    subject: channel === "email" ? d.subject : undefined,
+    body: d.body,
+    test,
+  });
+
+  async function send() {
+    if (blocking || busy) return;
+    if (mode === "api") {
+      setBusy(true);
+      setApiError(null);
+      const r = await sendViaApi(apiInput(false));
+      setBusy(false);
+      if (!r.ok) return setApiError(r.error);
+      // The server saved the row. Keep the on-screen list in step.
+      const actual = r.mode;
+      actions.addMessage(applicant.id, {
+        channel,
+        direction: "out",
+        mode: actual,
+        body: d.body,
+        subject: channel === "email" ? d.subject : undefined,
+        templateName: d.template?.name,
+        status: actual === "api" ? "sent" : "opened_link",
+      });
+      if (actual === "link" && r.url) openUrl(r.url);
+      setSentMode(actual);
+      return setSent(true);
+    }
     sendMessage(
       actions,
       { applicantId: applicant.id, channel, mode, phoneE164: applicant.phoneE164, email: applicant.email, subject: d.subject, body: d.body, templateName: d.template?.name },
-      (url) => {
-        try {
-          window.open(url, "_blank", "noopener");
-        } catch {
-          /* popup blocked: the message is still saved */
-        }
-      },
+      openUrl,
     );
     setSent(true);
+  }
+
+  async function sendTest() {
+    if (blocking || busy) return;
+    setBusy(true);
+    setApiError(null);
+    setNote(null);
+    const r = await sendViaApi(apiInput(true));
+    setBusy(false);
+    if (r.ok) setNote("Test sent to you.");
+    else setApiError(r.error);
   }
 
   return (
@@ -112,11 +160,21 @@ export function SendMessagePanel({ applicant, project, templates, channel, actio
             {blocking} Send is blocked.
           </p>
         )}
+        {apiError && (
+          <p role="alert" className="flex items-start gap-1.5 text-sm font-semibold text-signal-deep">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            {apiError}
+          </p>
+        )}
+        {note && <p role="status" className="text-sm font-semibold text-ok">{note}</p>}
       </div>
 
       <footer className="flex justify-end gap-2 border-t border-line px-6 py-4">
         <Button variant="secondary" onClick={onBack}>Cancel</Button>
-        <Button variant="primary" onClick={send} disabled={!!blocking} aria-describedby={blocking ? "send-title" : undefined}>
+        {mode === "api" && (
+          <Button variant="secondary" onClick={sendTest} disabled={!!blocking || busy}>Send test to me</Button>
+        )}
+        <Button variant="primary" onClick={send} disabled={!!blocking || busy} aria-describedby={blocking ? "send-title" : undefined}>
           Send {LABEL[channel]}
         </Button>
       </footer>

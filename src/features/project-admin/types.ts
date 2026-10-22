@@ -1,12 +1,7 @@
-import type { ProjectDef, QuestionDef, StageDef, TemplateDef } from "@/features/projects";
+import type { ProjectBundle } from "@/features/projects";
 
 /** A project with everything a duplicate copies. */
-export type ProjectRecord = {
-  def: ProjectDef;
-  questions: QuestionDef[];
-  stages: StageDef[];
-  templates: TemplateDef[];
-};
+export type ProjectRecord = ProjectBundle;
 
 export type UnmatchedBooking = {
   id: string;
@@ -32,4 +27,8 @@ export type ProjectsState = {
   projects: ProjectRecord[];
   bookings: UnmatchedBooking[];
   alerts: SystemAlert[];
+  /** True until the first load from the server finishes. */
+  loading: boolean;
+  /** Set when the first load failed. */
+  error: string | null;
 };

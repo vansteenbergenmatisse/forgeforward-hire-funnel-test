@@ -17,7 +17,7 @@ type Notice = { tone: "info" | "error"; text: string } | null;
 
 export function StagesTab({ api }: { api: SettingsApi }) {
   const { stages } = api.data;
-  const usage = useStageUsage();
+  const usage = useStageUsage(api.slug);
   const [notice, setNotice] = useState<Notice>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<StageDef | null>(null);
@@ -59,7 +59,7 @@ export function StagesTab({ api }: { api: SettingsApi }) {
   }
 
   function add() {
-    const id = `st-${Date.now().toString(36)}`;
+    const id = crypto.randomUUID();
     setStages(addStage(stages, id));
     setFocusId(id);
     setNotice(null);

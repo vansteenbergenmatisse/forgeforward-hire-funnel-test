@@ -1,0 +1,129 @@
+import type { ProjectBundle, ProjectRecordDto } from "../types";
+import { adminFetch } from "./api";
+
+// One client cache of every project's settings, stages, questions and templates.
+// The Projects home, the board and the Settings screens all read it, so an edit shows everywhere.
+// The database is the source of truth. `baseline` is what the server last confirmed for a project.
+
+export type RecordMeta = { savedAt: number | null; error: string | null };
+export type RecordsState = {
+  status: "idle" | "loading" | "ready" | "error";
+  records: ProjectRecordDto[];
+  error: string | null;
+  meta: Record<string, RecordMeta>;
+};
+
+export const EMPTY_RECORDS: RecordsState = { status: "idle", records: [], error: null, meta: {} };
+const NO_META: RecordMeta = { savedAt: null, error: null };
+
+let state: RecordsState = EMPTY_RECORDS;
+let loading: Promise<void> | null = null;
+const baselines = new Map<string, ProjectBundle>();
+const aliases = new Map<string, string>();
+const listeners = new Set<() => void>();
+
+function set(next: RecordsState) {
+  state = next;
+  listeners.forEach((l) => l());
+}
+
+export const getRecordsState = () => state;
+
+export function subscribeRecords(l: () => void) {
+  listeners.add(l);
+  return () => void listeners.delete(l);
+}
+
+export const metaFor = (s: RecordsState, slug: string): RecordMeta => s.meta[slug] ?? NO_META;
+
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+const bundleOf = ({ def, questions, stages, templates }: ProjectRecordDto): ProjectBundle => ({ def, questions, stages, templates });
+
+/** Loads every project once. Pass `force` to read the database again. */
+export function ensureRecordsLoaded(force = false): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (loading) return loading;
+  if (!force && state.status === "ready") return Promise.resolve();
+  set({ ...state, status: state.status === "ready" ? "ready" : "loading", error: null });
+  loading = adminFetch<ProjectRecordDto[]>("GET", "/api/admin/projects")
+    .then((records) => {
+      baselines.clear();
+      records.forEach((r) => baselines.set(r.def.slug, clone(bundleOf(r))));
+      set({ status: "ready", records, error: null, meta: {} });
+    })
+    .catch((e: unknown) => {
+      set({ ...state, status: state.status === "ready" ? "ready" : "error", error: e instanceof Error ? e.message : "Could not load projects." });
+    })
+    .finally(() => {
+      loading = null;
+    });
+  return loading;
+}
+
+export const getRecord = (slug: string) => state.records.find((r) => r.def.slug === slug);
+/** Where a renamed slug went, so a screen that still holds the old one keeps working until it navigates. */
+export const slugAlias = (slug: string) => aliases.get(slug);
+export const getBaseline = (slug: string) => baselines.get(slug);
+export const setBaseline = (slug: string, b: ProjectBundle) => void baselines.set(slug, clone(b));
+
+/** Applies an edit to the local copy. The caller syncs it to the server. */
+export function setLocalBundle(slug: string, next: ProjectBundle) {
+  set({ ...state, records: state.records.map((r) => (r.def.slug === slug ? { ...r, ...next } : r)) });
+}
+
+export function setMeta(slug: string, patch: Partial<RecordMeta>) {
+  set({ ...state, meta: { ...state.meta, [slug]: { ...metaFor(state, slug), ...patch } } });
+}
+
+/** Keeps the per-stage card counts right after cards move because a stage was deleted. */
+export function moveStageCount(slug: string, from: string, to: string) {
+  set({
+    ...state,
+    records: state.records.map((r) => {
+      if (r.def.slug !== slug) return r;
+      const counts = { ...r.stageCounts, [to]: (r.stageCounts[to] ?? 0) + (r.stageCounts[from] ?? 0) };
+      delete counts[from];
+      return { ...r, stageCounts: counts };
+    }),
+  });
+}
+
+/** Re-reads only the per-stage card counts of one project, so edits in progress are left alone. */
+export async function refreshStageCounts(slug: string): Promise<void> {
+  try {
+    const dto = await adminFetch<ProjectRecordDto>("GET", `/api/admin/projects/${slug}`);
+    set({ ...state, records: state.records.map((r) => (r.def.slug === slug ? { ...r, stageCounts: dto.stageCounts } : r)) });
+  } catch {
+    /* counts stay as they were */
+  }
+}
+
+/** Creates a blank project or a copy on the server and adds it to the cache. */
+export async function createRemoteProject(input: { name: string; mode: "blank" | "duplicate"; sourceSlug?: string }): Promise<ProjectRecordDto> {
+  const dto = await adminFetch<ProjectRecordDto>("POST", "/api/admin/projects", input);
+  baselines.set(dto.def.slug, clone(bundleOf(dto)));
+  set({ ...state, status: "ready", records: [...state.records, dto] });
+  return dto;
+}
+
+/** Moves a cached project to its new slug. The one place a slug changes on the client. */
+export function renameCachedSlug(oldSlug: string, newSlug: string) {
+  const base = baselines.get(oldSlug);
+  aliases.set(oldSlug, newSlug);
+  baselines.delete(oldSlug);
+  if (base) baselines.set(newSlug, { ...base, def: { ...base.def, slug: newSlug } });
+  const { [oldSlug]: oldMeta, ...restMeta } = state.meta;
+  set({
+    ...state,
+    records: state.records.map((r) => (r.def.slug === oldSlug ? { ...r, def: { ...r.def, slug: newSlug } } : r)),
+    meta: { ...restMeta, [newSlug]: { ...(oldMeta ?? NO_META), savedAt: Date.now(), error: null } },
+  });
+}
+
+/** Test helper: forget everything. */
+export function resetRecords() {
+  baselines.clear();
+  aliases.clear();
+  loading = null;
+  set(EMPTY_RECORDS);
+}

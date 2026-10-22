@@ -1,6 +1,8 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
+import { getRecord, moveStageCount, refreshStageCounts, useRecordsState } from "@/features/projects/client";
+import { noteStageMove } from "./sync";
 
 /** How many applicant cards sit in a stage. The board worker's real store can replace the mock. */
 export interface StageUsage {
@@ -36,9 +38,27 @@ export function StageUsageProvider({ value, children }: { value: StageUsage; chi
   return <StageUsageContext.Provider value={value}>{children}</StageUsageContext.Provider>;
 }
 
-/** Uses the provider when present, otherwise a per-screen mock. */
-export function useStageUsage(): StageUsage {
+/** Card counts come from the database through the shared project cache. Deleting a stage moves its cards on the server. */
+function useRecordStageUsage(slug: string): StageUsage {
+  useRecordsState();
+  useEffect(() => {
+    void refreshStageCounts(slug);
+  }, [slug]);
+  return useMemo(
+    () => ({
+      countCardsInStage: (id) => getRecord(slug)?.stageCounts[id] ?? 0,
+      moveCards(from, to) {
+        noteStageMove(slug, from, to);
+        moveStageCount(slug, from, to);
+      },
+    }),
+    [slug],
+  );
+}
+
+/** Uses the provider when present, otherwise the cache of the project. */
+export function useStageUsage(slug: string): StageUsage {
   const ctx = useContext(StageUsageContext);
-  const fallback = useMemo(() => createMockStageUsage(), []);
-  return ctx ?? fallback;
+  const fromCache = useRecordStageUsage(slug);
+  return ctx ?? fromCache;
 }

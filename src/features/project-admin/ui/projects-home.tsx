@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { AdminShell, PageHeader } from "@/components/layout";
 import { Button } from "@/components/ui";
 import { useApplicants } from "@/features/applicants";
+import { useSystemAlerts } from "@/features/backups";
 import { useProjects } from "../store";
 import { AlertBanner } from "./alert-banner";
 import { NewProjectDialog } from "./new-project-dialog";
@@ -21,7 +22,7 @@ export function ProjectsHome() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tileRef = useRef<HTMLButtonElement>(null);
   const first = state.projects[0]?.def.name;
-  const activeAlerts = state.alerts.filter((a) => !a.resolved);
+  const { alerts: activeAlerts, resolve: resolveAlert } = useSystemAlerts();
 
   function open(from: HTMLButtonElement | null) {
     triggerRef.current = from;
@@ -40,7 +41,7 @@ export function ProjectsHome() {
       />
       <main className="flex flex-col gap-[18px] px-7 py-[22px]">
         {activeAlerts.map((a) => (
-          <AlertBanner key={a.id} alert={a} onResolve={() => actions.resolveAlert(a.id)} />
+          <AlertBanner key={a.id} alert={a} onResolve={a.id.startsWith("errors:") ? () => void resolveAlert(a.id) : undefined} />
         ))}
         <div className="grid items-stretch gap-[18px] xl:grid-cols-[1fr_340px]">
           <div className="flex flex-col gap-[18px]">
@@ -68,8 +69,8 @@ export function ProjectsHome() {
         projects={state.projects}
         returnFocusRef={triggerRef}
         onClose={() => setCreating(false)}
-        onCreate={(input) => {
-          const record = actions.createProject(input);
+        onCreate={async (input) => {
+          const record = await actions.createProject(input);
           router.push(`/admin/p/${record.def.slug}`);
         }}
       />

@@ -54,3 +54,14 @@ export type ProjectDef = {
   replyDays: number;
   handoffEnabled: boolean;
 };
+
+/** A project with everything a duplicate copies. */
+export type ProjectBundle = {
+  def: ProjectDef;
+  questions: QuestionDef[];
+  stages: StageDef[];
+  templates: TemplateDef[];
+};
+
+/** What the admin API returns for a project: the bundle plus how many applicants sit in each stage. */
+export type ProjectRecordDto = ProjectBundle & { stageCounts: Record<string, number> };

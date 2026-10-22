@@ -1,2 +1,3 @@
 export { TestConsole } from "./ui/test-console";
-export type { TestRunner, CheckResult, CheckId } from "./types";
+export { CHECK_IDS } from "./types";
+export type { TestRunner, CheckResult, CheckId, ConsoleState, CheckResponse } from "./types";

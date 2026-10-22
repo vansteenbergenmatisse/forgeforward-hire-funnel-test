@@ -11,7 +11,8 @@ type Props = {
   everRun: boolean;
   subtitle: string;
   simulateFailure: boolean;
-  onSimulateChange: (v: boolean) => void;
+  /** Only given for the simulated runner. The real runner has nothing to simulate. */
+  onSimulateChange?: (v: boolean) => void;
   onRun: () => void;
 };
 
@@ -36,17 +37,21 @@ export function FullTestCard({ rows, summary, running, everRun, subtitle, simula
         ))}
       </ol>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3">
-        <label className="flex cursor-pointer items-center gap-2 text-[13px] font-semibold">
-          <input
-            type="checkbox"
-            checked={simulateFailure}
-            disabled={running}
-            onChange={(e) => onSimulateChange(e.target.checked)}
-            className="size-4 accent-signal"
-          />
-          Simulate a failure
-          <span className="font-normal text-muted">(demo: check 12 fails)</span>
-        </label>
+        {onSimulateChange ? (
+          <label className="flex cursor-pointer items-center gap-2 text-[13px] font-semibold">
+            <input
+              type="checkbox"
+              checked={simulateFailure}
+              disabled={running}
+              onChange={(e) => onSimulateChange(e.target.checked)}
+              className="size-4 accent-signal"
+            />
+            Simulate a failure
+            <span className="font-normal text-muted">(demo: check 12 fails)</span>
+          </label>
+        ) : (
+          <span />
+        )}
         {summary.done && (
           <p className="text-[13px] font-bold tabular-nums">
             {summary.passed} of {summary.total} passed

@@ -10,7 +10,6 @@ import { ThankYouTab } from "./tabs/thankyou-tab";
 import { VideoTab } from "./tabs/video-tab";
 import { SavedIndicator } from "./ui/saved-indicator";
 import { SETTINGS_TABS, type SettingsTab } from "./types";
-import { useHydrated } from "./use-hydrated";
 import { useSettings } from "./use-settings";
 
 function TabBody({ tab, api }: { tab: SettingsTab; api: ReturnType<typeof useSettings> }) {
@@ -35,19 +34,22 @@ function TabBody({ tab, api }: { tab: SettingsTab; api: ReturnType<typeof useSet
 /** The whole settings screen for one project: shell, header with tabs, and the active tab. */
 export function ProjectSettings({ slug, tab }: { slug: string; tab: SettingsTab }) {
   const api = useSettings(slug);
-  const hydrated = useHydrated();
-  const name = api.data.project.name;
+  const name = api.data.project.name || slug;
   return (
     <AdminShell active="settings" project={{ slug, name }}>
       <PageHeader
         crumb={name}
         title="Settings"
-        actions={<SavedIndicator savedAt={api.savedAt} />}
+        actions={<SavedIndicator savedAt={api.savedAt} error={api.error} />}
         tabs={SETTINGS_TABS.map((t) => ({ href: `/admin/p/${slug}/settings?tab=${t.id}`, label: t.label, active: t.id === tab }))}
       />
       <main className="min-w-0 flex-1 px-7 py-6">
-        {hydrated ? (
+        {api.status === "ready" ? (
           <TabBody tab={tab} api={api} />
+        ) : api.status === "notfound" || api.status === "error" ? (
+          <p role="alert" className="max-w-xl text-[15px] font-semibold text-muted">
+            {api.status === "notfound" ? "This project does not exist." : "Could not load the settings. Reload the page to try again."}
+          </p>
         ) : (
           <div role="status" aria-label="Loading settings" className="h-80 animate-pulse rounded-xl border border-line bg-white" />
         )}

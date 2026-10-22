@@ -49,3 +49,9 @@ export type ChannelMode = "api" | "link";
 export type SendResult = { ok: boolean; message: string };
 
 export type TestDataCounts = { rows: number; files: number };
+
+/** Values the checks hand to each other (applicant id, resume token, keys). The browser carries them between calls. */
+export type ConsoleState = Record<string, string | number>;
+
+/** Wire format of POST /api/admin/test/check. */
+export type CheckResponse = { result: CheckResult; state: ConsoleState };

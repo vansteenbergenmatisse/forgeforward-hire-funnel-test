@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import { DevReview, FunnelFlow, FunnelNotice, getFunnelProject, parseDevStep, parseSim, pickTracking } from "@/features/applicant-funnel";
+import { DevReview, FunnelFlow, FunnelNotice, parseDevStep, parseSim, pickTracking } from "@/features/applicant-funnel";
+import { getFunnelProject } from "@/features/applicant-funnel/server";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Apply | Forge Forward" };
 

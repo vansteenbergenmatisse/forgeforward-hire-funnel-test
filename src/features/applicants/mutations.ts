@@ -1,4 +1,4 @@
-import type { ApplicantView, MessageRow, TimelineEvent } from "./types";
+import type { ApplicantView, LinkableBooking, MessageRow, TimelineEvent } from "./types";
 
 let counter = 0;
 function uid(prefix: string): string {
@@ -44,5 +44,15 @@ export function applyMessage(
     messages: [...a.messages, row],
     unreadReply: message.direction === "in" ? true : a.unreadReply,
     events: [...a.events, makeEvent(type, { channel: message.channel, mode: message.mode, messageId: row.id }, new Date(at))],
+  };
+}
+
+/** Mock-mode link: saves the booking and adds the timeline event. The server also moves the card (see booking-rules). */
+export function applyBookingLink(a: ApplicantView, b: LinkableBooking, now: Date = new Date()): ApplicantView {
+  const end = b.end ?? new Date(Date.parse(b.start) + 30 * 60_000).toISOString();
+  return {
+    ...a,
+    booking: { start: b.start, end, status: "booked" },
+    events: [...a.events, makeEvent("booking_created", { start: b.start, end, linked: true }, now)],
   };
 }
