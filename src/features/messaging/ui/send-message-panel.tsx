@@ -6,7 +6,7 @@ import { Badge, Button } from "@/components/ui";
 import { Field, Select, TextArea, TextInput } from "@/components/forms";
 import type { ApplicantActions, ApplicantView } from "@/features/applicants";
 import type { Channel, TemplateDef } from "@/features/projects";
-import { getSendMode } from "../send-mode";
+import { getSendMode, savesOnServer } from "../send-mode";
 import { sendMessage } from "../send-message";
 import { sendViaApi } from "../send-client";
 import { validateOutgoing } from "../prepare-message";
@@ -85,6 +85,14 @@ export function SendMessagePanel({ applicant, project, templates, channel, actio
       if (actual === "link" && r.url) openUrl(r.url);
       setSentMode(actual);
       return setSent(true);
+    }
+    if (savesOnServer()) {
+      // Link mode: the server only saves the row, so the timeline survives a reload.
+      setBusy(true);
+      setApiError(null);
+      const saved = await sendViaApi({ ...apiInput(false), mode: "link" });
+      setBusy(false);
+      if (!saved.ok) return setApiError(saved.error);
     }
     sendMessage(
       actions,

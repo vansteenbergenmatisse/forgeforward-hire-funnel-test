@@ -69,6 +69,17 @@ describe("sendApplicantMessage", () => {
     expect(f).not.toHaveBeenCalled();
   });
 
+  it("mode link only saves the row, even when keys are set", async () => {
+    emailKeys();
+    const f = vi.fn();
+    vi.stubGlobal("fetch", f);
+    const { s, rows } = store();
+    const r = await sendApplicantMessage(s, { ...base, channel: "email", templateId: "t1", mode: "link" });
+    expect(r).toMatchObject({ ok: true, mode: "link" });
+    expect(rows[0]).toMatchObject({ mode: "link", status: "opened_link" });
+    expect(f).not.toHaveBeenCalled();
+  });
+
   it("blocks and names a missing template variable", async () => {
     emailKeys();
     const f = vi.fn();

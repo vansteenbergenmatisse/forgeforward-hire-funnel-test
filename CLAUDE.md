@@ -3,8 +3,10 @@
 Hiring funnel (/a/[slug]) and private applicant dashboard (/admin) for Forge Forward. First project: Appointment Setter. Spec: FUNNEL_SPEC.md (source of truth). Plan and progress: PLAN.md. Device checks a bot cannot do: MANUAL_CHECKS.md. What the user must do and what is left for Claude: NEXT_STEPS.md (read it first in a new session).
 
 ## Status (2026-10-21)
-- Done: foundation code, full front-end for the funnel (A01 to A16) and the dashboard (D01 to D15) against mock data.
-- Not done: server API routes, DB wiring, R2 uploads, Cal.com/WhatsApp webhooks, cron jobs, Resend/WhatsApp/GHL, Vercel deploy. Blocked on keys in `.env` (see `.env.example`).
+- Done: front-end (funnel A01 to A16, dashboard D01 to D15), and the backend: funnel API, admin API, Cal.com webhook, cron/backup/restore, test console runner, messaging provider code. Neon, R2 and Vercel are set up.
+- Switches: `NEXT_PUBLIC_FUNNEL_API=http` and `NEXT_PUBLIC_ADMIN_API=http` use the real routes (default is mock). `NEXT_PUBLIC_TEST_CONSOLE=mock` keeps the simulated console. `NEXT_PUBLIC_SEND_MODE=api` once messaging keys exist.
+- Deployed: https://forge-hire.vercel.app (Vercel auto-deploys on push to main; Production env has both http switches). Dashboard and funnel run on the database.
+- Not done: separate production database (Vercel `DATABASE_URL` still points at the Development Neon branch), provider keys (Resend, WhatsApp, GHL, Cal.com secret). See NEXT_STEPS.md.
 - Details, deviations and what is mock: PLAN.md.
 
 ## Stack (decided)
@@ -26,6 +28,8 @@ Hiring funnel (/a/[slug]) and private applicant dashboard (/admin) for Forge For
 - `pnpm dev` (set `ADMIN_KEY` to a 48+ char string; visit `/admin/k/<key>` once per browser for the admin cookie).
 - `pnpm exec tsc --noEmit --incremental false`, `pnpm lint`, `pnpm test` (vitest), `pnpm build`.
 - Playwright: start a dev server, then `pnpm exec playwright test` (funnel, baseURL `E2E_BASE_URL` or http://localhost:3101) and `pnpm exec playwright test -c playwright.video.config.ts` (video flow, http://localhost:3104). Chromium runs with fake camera and mic flags.
+- Dashboard Playwright: `pnpm exec tsx scripts/e2e-dashboard-server.ts` (test DB, `test/` prefix, providers off), then `pnpm exec playwright test -c playwright.dashboard.config.ts`. `pnpm exec playwright test` skips the dashboard and video specs.
+- Backups: `pnpm cron:backup` (needs `pg_dump` 18: `brew install postgresql@18`), `scripts/restore.ts --prove`. Crons: `vercel.json` calls `/api/cron/*` with `CRON_SECRET`.
 - Parallel dev servers need separate build dirs: `NEXT_DIST_DIR=.next-x pnpm exec next dev -p <port>`. Run `pnpm exec next typegen` if route types look stale.
 - DB: `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:seed`.
 
@@ -39,7 +43,7 @@ Hiring funnel (/a/[slug]) and private applicant dashboard (/admin) for Forge For
 - Copy: short sentences, plain words, no em dashes.
 - Brand: Signal Red #D93A31, Red Deep #B8302A, Red Tint #FCEFED, Deep Charcoal #0E1220, Warm Ivory #FCFBF8. Barlow Condensed headings, Inter body (next/font). Tap targets 48 px min. Tokens live in `src/app/globals.css`; no hex values or inline styles in components.
 - Icons: lucide-react only. No emoji. Country is a 2-letter chip, never a flag emoji.
-- Tests use a separate test database and the `test/` R2 prefix, never production data.
+- Tests use the Neon `test` branch (`TEST_DATABASE_URL`) and the `test/` R2 prefix, never production data.
 - All times UTC in the database. Every table has uuid id, created_at, updated_at.
 - Stop only for missing env keys; name the key and where to get it.
 - Git identity for this repo: vansteenbergenmatisse / vansteenbergenmatisse@gmail.com. Remote: github.com/vansteenbergenmatisse/forgeforward-hire-funnel-test.

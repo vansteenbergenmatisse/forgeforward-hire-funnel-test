@@ -19,6 +19,9 @@ describe("taskContentToHtml", () => {
     expect(html).toContain('<a href="https://x.test"');
     expect(html).not.toContain("javascript:");
   });
+  it("reads the { html } shape the Task settings tab saves", () => {
+    expect(taskContentToHtml({ html: "<p>Write a text</p>" })).toBe("<p>Write a text</p>");
+  });
   it("returns empty for null", () => {
     expect(taskContentToHtml(null)).toBe("");
   });

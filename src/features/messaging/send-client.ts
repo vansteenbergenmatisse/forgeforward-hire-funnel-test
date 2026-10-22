@@ -7,6 +7,8 @@ export type ApiSendInput = {
   subject?: string;
   body: string;
   test?: boolean;
+  /** "link" saves the message without sending it. */
+  mode?: "api" | "link";
 };
 
 export type ApiSendResult =

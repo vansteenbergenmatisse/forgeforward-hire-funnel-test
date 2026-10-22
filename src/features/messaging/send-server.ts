@@ -74,7 +74,7 @@ export async function sendApplicantMessage(store: SendStore, req: SendRequest, n
   // WhatsApp: free text only inside the 24h window, else an approved template with ordered variables.
   const waVars: string[] = [];
   let useWaTemplate = false;
-  if (req.channel === "whatsapp") {
+  if (req.channel === "whatsapp" && req.mode !== "link") {
     const last = req.test ? null : await store.lastWhatsAppReplyAt(a.id);
     const open = last !== null && now.getTime() - last.getTime() < WHATSAPP_WINDOW_HOURS * 3_600_000;
     if (!open) {
@@ -94,7 +94,7 @@ export async function sendApplicantMessage(store: SendStore, req: SendRequest, n
   const save = (row: Pick<OutgoingRow, "mode" | "status" | "providerMessageId" | "error">) =>
     store.insertMessage({ applicantId: a.id, channel: req.channel, templateId: template?.id ?? null, body, ...row });
 
-  if (!configured(req.channel)) {
+  if (req.mode === "link" || !configured(req.channel)) {
     if (req.test) return { ok: false, code: "not_configured", error: "This channel has no provider keys yet." };
     const url = buildLinkUrl({ channel: req.channel, phoneE164: a.phoneE164, email: a.email, subject, body });
     await save({ mode: "link", status: "opened_link", providerMessageId: null, error: null });

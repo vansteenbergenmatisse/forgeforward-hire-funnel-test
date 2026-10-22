@@ -6,6 +6,8 @@ export const sendRequestSchema = z.object({
   templateId: z.string().uuid().optional(),
   subject: z.string().max(300).optional(),
   body: z.string().max(5000).optional(),
+  /** "link" only saves the message (the admin opens the wa.me, sms: or mailto: link). Nothing is sent. */
+  mode: z.enum(["api", "link"]).optional(),
   /** "Send test to me": goes to TEST_EMAIL or TEST_PHONE and is not saved on the applicant. */
   test: z.boolean().optional(),
 });

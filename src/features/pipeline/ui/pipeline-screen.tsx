@@ -49,7 +49,7 @@ export function PipelineScreen(props: Props) {
   const { state } = useProjects();
   const mounted = useMounted();
   const record = state.projects.find((p) => p.def.slug === props.slug);
-  if (!record) return mounted ? <ProjectNotFound slug={props.slug} /> : <PipelineSkeleton slug={props.slug} />;
+  if (!record) return mounted && !state.loading ? <ProjectNotFound slug={props.slug} /> : <PipelineSkeleton slug={props.slug} />;
   return <ProjectPipeline {...props} record={record} />;
 }
 

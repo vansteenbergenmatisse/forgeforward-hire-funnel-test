@@ -17,12 +17,20 @@ import { UnmatchedBookings } from "./unmatched-bookings";
 export function ProjectsHome() {
   const router = useRouter();
   const { state, actions } = useProjects();
-  const { applicants } = useApplicants();
+  const { applicants, actions: applicantActions } = useApplicants();
   const [creating, setCreating] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tileRef = useRef<HTMLButtonElement>(null);
   const first = state.projects[0]?.def.name;
   const { alerts: activeAlerts, resolve: resolveAlert } = useSystemAlerts();
+
+  // Saves the booking on the applicant (moves the card on the server), then marks the row linked.
+  function linkBooking(bookingId: string, applicantId: string) {
+    const booking = state.bookings.find((b) => b.id === bookingId);
+    if (!booking) return;
+    applicantActions.linkBooking(applicantId, { id: booking.id, start: booking.start, title: booking.title });
+    actions.linkBooking(bookingId, applicantId);
+  }
 
   function open(from: HTMLButtonElement | null) {
     triggerRef.current = from;
@@ -62,7 +70,7 @@ export function ProjectsHome() {
             <span className="text-[13px] font-medium">Start blank{first ? ` or copy ${first}` : ""}</span>
           </button>
         </div>
-        <UnmatchedBookings bookings={state.bookings} applicants={applicants} onLink={actions.linkBooking} onDismiss={actions.dismissBooking} />
+        <UnmatchedBookings bookings={state.bookings} applicants={applicants} onLink={linkBooking} onDismiss={actions.dismissBooking} />
       </main>
       <NewProjectDialog
         open={creating}

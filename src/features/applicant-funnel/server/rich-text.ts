@@ -50,9 +50,10 @@ function render(n: Node): string {
   }
 }
 
-/** task_content is HTML (a string) or Tiptap JSON. The funnel sanitizes the HTML again before rendering. */
+/** task_content is `{ html }` (what the Task settings tab saves), an HTML string or Tiptap JSON. The funnel sanitizes the HTML again before rendering. */
 export function taskContentToHtml(content: unknown): string {
   if (typeof content === "string") return content;
+  if (content && typeof content === "object" && typeof (content as { html?: unknown }).html === "string") return (content as { html: string }).html;
   if (content && typeof content === "object") return render(content as Node);
   return "";
 }

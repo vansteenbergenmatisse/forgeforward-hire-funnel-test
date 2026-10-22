@@ -1,6 +1,6 @@
 # PLAN: Forge Hire
 
-Status (2026-10-21): Phase 1 foundation is built. The complete FRONT-END for the funnel and the dashboard is built and verified against mock data. The backend (API routes, database wiring, R2 uploads, webhooks, cron, messaging providers) is NOT built yet and is blocked on keys. See "Progress" below.
+Status (2026-10-21): foundation, funnel API, admin API, Cal.com webhook, cron/backup/restore and messaging provider code are built and tested (405 vitest tests, build clean, funnel Playwright 24/24 and dashboard Playwright 9/9 on real routes). Deployed to https://forge-hire.vercel.app. Open: production database split, live test console run, provider keys. See NEXT_STEPS.md.
 
 ## Progress
 
@@ -9,10 +9,10 @@ The actionable to-do lists (yours and mine) are in NEXT_STEPS.md.
 | Phase | Scope | Status |
 |---|---|---|
 | 1 Foundation | Scaffold, brand tokens, Drizzle schema + first migration, R2 helper, admin key gate, seed, /api/health | Done 2026-10-21: Neon Development migrated and seeded, test branch, R2 bucket + CORS, 3 integration tests pass, /api/health ok. Production and Preview DBs: migrate and seed at deploy |
-| 2 Applicant funnel | A01 to A16 UI, real camera/recorder/upload logic, mock API | Front-end done and verified. Server routes NOT built. Vercel deploy NOT done |
-| 3 Dashboard | Projects home, board + drag/drop, Did not finish, Table + CSV, drawer + video player, send modal, all 7 settings tabs | Front-end done and verified against an in-memory store. Cal.com webhook and server persistence NOT built |
-| 4 Safety nets | Backups, integrity check, restore script, retention cron, banners | Test console UI (simulated) and retention/banner UI done. Cron jobs, restore script NOT built |
-| 5 Messaging | Resend, WhatsApp Cloud API, GHL | Send modal, templates and link mode done (front-end). Provider integrations NOT built |
+| 2 Applicant funnel | A01 to A16 UI, real camera/recorder/upload logic, mock API | Done and deployed to Vercel (https://forge-hire.vercel.app) |
+| 3 Dashboard | Projects home, board + drag/drop, Did not finish, Table + CSV, drawer + video player, send modal, all 7 settings tabs | Done: admin API, DB-backed stores, Cal.com webhook, dashboard Playwright specs (9 green) |
+| 4 Safety nets | Backups, integrity check, restore script, retention cron, banners | Done: cron routes, backup script + GitHub Action, restore proven, banners, real test console. Not run on Vercel/GitHub yet |
+| 5 Messaging | Resend, WhatsApp Cloud API, GHL | Provider code and webhook built, mocked tests only. No live keys yet |
 
 ### Front-end verification (2026-10-21)
 - `tsc --noEmit`, `pnpm lint`, `pnpm build`: clean.
@@ -21,7 +21,7 @@ The actionable to-do lists (yours and mine) are in NEXT_STEPS.md.
 - Dashboard interactions were clicked through in the browser by the lead and the workers. There are NO Playwright specs for the dashboard yet.
 - Not verified: real iPhone Safari, real Android Chrome, Facebook and Instagram in-app browsers (see MANUAL_CHECKS.md).
 
-### What is mock today
+### What is mock today (defaults; flip with the env switches in CLAUDE.md)
 - The funnel talks to `FunnelApi` in `src/features/applicant-funnel/api/`. `mock-api.ts` is the default. `http-api.ts` already calls the spec routes and is selected with `NEXT_PUBLIC_FUNNEL_API=http`. The server routes do not exist yet.
 - The dashboard stores (applicants, projects, settings) are in-memory with `localStorage` persistence. They are NOT synced with each other or with the funnel. Replace with API data in the backend phase.
 - Test console runs a simulation behind `TestRunner`, `TestMessenger`, `TestDataStore` interfaces (`src/features/test-console/`).
@@ -143,3 +143,12 @@ Colors from the HTML (Signal Red #D93A31, Red Deep #B8302A, Red Tint #FCEFED, De
 
 ## 8. Env vars (.env.example)
 APP_URL, CRON_SECRET, DATABASE_URL, TEST_DATABASE_URL, ADMIN_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, CALCOM_WEBHOOK_SECRET, RESEND_API_KEY, EMAIL_FROM, EMAIL_REPLY_TO, WA_PHONE_NUMBER_ID, WA_ACCESS_TOKEN, WA_APP_SECRET, WA_VERIFY_TOKEN, GHL_PRIVATE_TOKEN, GHL_LOCATION_ID, TEST_EMAIL, TEST_PHONE
+
+## 9. Backend notes (2026-10-21)
+- Task body is stored as `{html}` in `task_content` (sanitized on write and read).
+- Hired and Rejected terminal stages are matched by name (no role column).
+- Task file name and size are not stored in their own columns; the drawer shows size 0. Optional schema change.
+- Vercel: `DATABASE_URL` is one value for Development, Preview and Production and points at the Development Neon branch. Split before real applicants.
+- The Postgres `pg_dump` for backups runs in GitHub Actions (postgresql-client 18, matches Neon). Locally: `brew install postgresql@18`.
+- GHL v2 sends use header `Version: v3` (override `GHL_API_VERSION`).
+- Rate limit store: Postgres by default, `FUNNEL_RATE_LIMIT_STORE=memory` for the in-memory one.
