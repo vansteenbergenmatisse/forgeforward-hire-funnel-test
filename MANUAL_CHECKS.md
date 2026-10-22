@@ -36,6 +36,8 @@ Not run yet. The first Vercel deploy is live; run these on real devices now. Aut
 - [ ] Dashboard in Chrome and Safari: drag a card, open a video, play at 1x, 1.5x and 2x
 
 ## Production only (after backend deploy)
+- [ ] Signed out, /adminMatt shows the login page; a wrong password shows "Wrong password."; the right one opens the dashboard (also on iPhone Safari: the field does not zoom, the password manager offers to fill)
+- [ ] Sign out lands on the login page; /adminMatt/k/<ADMIN_KEY> still signs in
 - [ ] Test console at /adminMatt/test: every check green, then "Delete test data" shows 0 left
 - [ ] A real Cal.com booking moves the card to Interview booked
 - [ ] Send a real email, WhatsApp and SMS to yourself with "Send test to me"

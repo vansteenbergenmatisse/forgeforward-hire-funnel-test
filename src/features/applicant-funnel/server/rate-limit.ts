@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { clientIp } from "@/shared/client-ip";
 import { optionalEnv } from "@/shared/env";
 import { createMemoryRateLimitStore, takeRateLimit, type RateLimitRule, type RateLimitStore } from "@/shared/rate-limit";
 import { ApiError } from "./errors";
@@ -11,18 +12,7 @@ export function limitStore(): RateLimitStore {
   return process.env.FUNNEL_RATE_LIMIT_STORE === "memory" ? memoryStore : createPgRateLimitStore();
 }
 
-/**
- * Caller IP. On Vercel the platform sets x-vercel-forwarded-for and overwrites x-forwarded-for. Elsewhere the
- * rightmost x-forwarded-for entry is the one our own proxy appended, so a client cannot choose it.
- */
-export function clientIp(req: Pick<Request, "headers">): string {
-  const vercel = req.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim();
-  if (vercel) return vercel;
-  const real = req.headers.get("x-real-ip")?.trim();
-  if (real) return real;
-  const parts = req.headers.get("x-forwarded-for")?.split(",") ?? [];
-  return parts[parts.length - 1]?.trim() || "unknown";
-}
+export { clientIp };
 
 /** IPs are stored only as a keyed hash, salted with the UTC day so buckets cannot be linked across days. */
 export function ipBucket(scope: string, ip: string, now: Date = new Date()) {

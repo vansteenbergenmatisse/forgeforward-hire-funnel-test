@@ -21,11 +21,11 @@ Hiring funnel (/a/[slug]) and private applicant dashboard (/adminMatt) for Forge
 - `features/pipeline`: board, Did not finish, Table. `features/applicant-review`: drawer + player. `features/messaging`: template fill + send modal.
 - `features/project-admin`: Projects home, projects store. `features/project-settings`: 7 settings tabs. `features/test-console`: simulated test console.
 - `features/projects`: types, defaults, fixtures. Its `index` is client-safe; server-only code is in `projects/server.ts`.
-- `features/admin-access`, `features/bookings`: admin key gate, Cal.com link builder.
+- `features/admin-access`: admin cookie gate, password login (`/adminMatt/login`, 8 wrong tries per IP per 15 min in Postgres), key link fallback. `features/bookings`: Cal.com link builder.
 - `components/{brand,ui,forms,layout,funnel}`: shared UI. `platform/{db,r2}`: server only, never import from client components.
 
 ## Commands
-- `pnpm dev` (set `ADMIN_KEY` to a 48+ char string; visit `/adminMatt/k/<key>` once per browser for the admin cookie).
+- `pnpm dev` (set `ADMIN_KEY` to a 48+ char string; open `/adminMatt` and sign in with `ADMIN_PASSWORD`; the fallback `/adminMatt/k/<key>` also sets the admin cookie).
 - `pnpm exec tsc --noEmit --incremental false`, `pnpm lint`, `pnpm test` (vitest), `pnpm build`.
 - Playwright: start a dev server, then `pnpm exec playwright test` (funnel, baseURL `E2E_BASE_URL` or http://localhost:3101) and `pnpm exec playwright test -c playwright.video.config.ts` (video flow, http://localhost:3104). Chromium runs with fake camera and mic flags.
 - Dashboard Playwright: `pnpm exec tsx scripts/e2e-dashboard-server.ts` (test DB, `test/` prefix, providers off), then `pnpm exec playwright test -c playwright.dashboard.config.ts`. `pnpm exec playwright test` skips the dashboard and video specs.

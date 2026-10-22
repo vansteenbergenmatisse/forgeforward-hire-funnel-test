@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import {
   ADMIN_COOKIE,
-  ADMIN_COOKIE_MAX_AGE,
+  adminCookieOptions,
   clearFailures,
   clientIp,
   cookieValue,
@@ -48,14 +48,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/adminMatt/k/[key
   }
   clearFailures(ip);
   const res = NextResponse.redirect(new URL(ADMIN_BASE_PATH, req.url));
-  res.cookies.set(ADMIN_COOKIE, cookieValue(adminKey), {
-    httpOnly: true,
-    // The __Host- name used in production needs Secure. Plain http is only for local development.
-    secure: process.env.NODE_ENV === "production" || req.nextUrl.protocol === "https:",
-    sameSite: "lax",
-    path: "/",
-    maxAge: ADMIN_COOKIE_MAX_AGE,
-  });
+  // The __Host- name used in production needs Secure. Plain http is only for local development.
+  res.cookies.set(ADMIN_COOKIE, cookieValue(adminKey), adminCookieOptions(process.env.NODE_ENV === "production" || req.nextUrl.protocol === "https:"));
   for (const [k, v] of Object.entries(PRIVATE_HEADERS)) res.headers.set(k, v);
   return res;
 }

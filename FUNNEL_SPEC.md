@@ -233,8 +233,10 @@ Positive means applicants in that stage are never auto-deleted (Part F).
 # Part D: Dashboard
 
 ## D1. Access
-- No login. Matt opens /adminMatt/k/{ADMIN_KEY} once per device. Sets a 90 day cookie.
-- Without the cookie every admin page returns 404.
+- Password login: Matt opens /adminMatt, which shows a login page, and enters `ADMIN_PASSWORD`. Sets the admin cookie (30 days, HttpOnly, Secure, SameSite=Lax).
+- Fallback: /adminMatt/k/{ADMIN_KEY} still sets the same cookie. Empty or unset `ADMIN_PASSWORD` turns password login off.
+- Limit: 8 wrong passwords per IP in 15 minutes (stored in Postgres), then 429 "Too many tries. Wait 15 minutes." A correct password does not count. Wrong tries go to system_errors, a success to admin_audit (no password, no IP).
+- Without the cookie only /adminMatt and /adminMatt/login (the login page) answer. Every other admin page and the admin API return 404. Signing out lands on the login page.
 - Changing ADMIN_KEY on Vercel logs out every device.
 - Every admin page sends noindex. robots.txt does not list it, so the path is not published. The gate answers 404 and sends noindex.
 

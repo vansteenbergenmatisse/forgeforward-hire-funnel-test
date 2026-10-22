@@ -25,6 +25,8 @@ Order matters. Items marked SLOW have a waiting period, so start them first.
 
 I create `TEST_DATABASE_URL` (a second Neon branch or database) and `ADMIN_KEY` myself.
 
+**Dashboard password:** set `ADMIN_PASSWORD` (your own, long) in `.env.local` and in Vercel (Production). Then open `/adminMatt` and sign in. Empty means password login is off. The key link `/adminMatt/k/<ADMIN_KEY>` keeps working as a fallback.
+
 ### 2. At deploy (end of Phase 2)
 
 | # | Task | How |
@@ -97,7 +99,7 @@ Two analysis agents found 79 verified bugs (B001 to B079) and 59 security findin
 
 Config added: `ENABLE_DEV_ROUTES=1` re-enables `?sim=`, `?step=`, `?video=stub` and `/dev/video-flow` (only for e2e builds, never in real production). Task-page pictures may come from any https site (CSP `img-src https:`). `APP_DATABASE_URL` wins over `DATABASE_URL`.
 
-Decisions made 2026-10-22: applicants we do nothing with, or reject, are deleted completely after 30 days (positive stages are kept longer); no backup encryption; no admin login for now (the key URL is enough); no email or phone ownership check; edge rate limit set in Vercel (120 requests per minute per IP on /api/apply; the plan allows one rule); task-page images allowed from any https site; `.mcp.json` untracked and gitignored.
+Decisions made 2026-10-22: applicants we do nothing with, or reject, are deleted completely after 30 days (positive stages are kept longer); no backup encryption; admin password login added at /adminMatt (the key URL stays as a fallback); no email or phone ownership check; edge rate limit set in Vercel (120 requests per minute per IP on /api/apply; the plan allows one rule); task-page images allowed from any https site; `.mcp.json` untracked and gitignored.
 
 Decisions that were open (now settled, kept for the record):
 - S004: verify email or phone ownership before any send (product decision).

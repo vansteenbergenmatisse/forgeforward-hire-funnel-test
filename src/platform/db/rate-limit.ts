@@ -19,3 +19,11 @@ export async function tryRecordRateLimitHit(bucket: string, since: Date, max: nu
     return true;
   });
 }
+
+/** Removes one hit that `tryRecordRateLimitHit` recorded at exactly `at`. Used to give a slot back after a success. */
+export async function releaseRateLimitHit(bucket: string, at: Date): Promise<void> {
+  await db().execute(sql`
+    delete from rate_limit_hits
+    where ctid = (select ctid from rate_limit_hits where bucket = ${bucket} and created_at = ${at.toISOString()}::timestamptz limit 1)
+  `);
+}

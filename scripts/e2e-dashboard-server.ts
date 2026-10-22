@@ -1,5 +1,5 @@
 // Starts a dev server for the dashboard specs: test database, test/ R2 prefix, http API mode,
-// a throwaway admin key and Cal.com secret, and every outbound provider switched off.
+// a throwaway admin key, admin password and Cal.com secret, and every outbound provider switched off.
 // Usage: pnpm exec tsx scripts/e2e-dashboard-server.ts   (port 3210, dist dir .next-int)
 import { spawn } from "node:child_process";
 import { config } from "dotenv";
@@ -21,6 +21,7 @@ const env = {
   DATABASE_URL: testDb,
   R2_KEY_PREFIX: "test/",
   ADMIN_KEY: process.env.E2E_ADMIN_KEY ?? "e2e-admin-key-".padEnd(48, "x"),
+  ADMIN_PASSWORD: process.env.E2E_ADMIN_PASSWORD ?? "e2e-test-password",
   CALCOM_WEBHOOK_SECRET: process.env.E2E_CALCOM_SECRET ?? "e2e-calcom-test-secret",
   NEXT_PUBLIC_ADMIN_API: "http",
   NEXT_PUBLIC_FUNNEL_API: "http",

@@ -11,6 +11,7 @@ config({ path: [".env.local", ".env.development.local", ".env"], quiet: true });
 
 // Same defaults as scripts/e2e-dashboard-server.ts. Never the real secrets.
 export const ADMIN_KEY = process.env.E2E_ADMIN_KEY ?? "e2e-admin-key-".padEnd(48, "x");
+export const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "e2e-test-password";
 export const CAL_SECRET = process.env.E2E_CALCOM_SECRET ?? "e2e-calcom-test-secret";
 
 export const rand = () => randomBytes(4).toString("hex");

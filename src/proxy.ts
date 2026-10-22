@@ -3,12 +3,17 @@ import { ADMIN_COOKIE, isValidCookie } from "@/features/admin-access/access";
 import { ADMIN_BASE_PATH } from "@/features/admin-access";
 import { MIN_ADMIN_KEY_LENGTH } from "@/shared/env";
 
+const LOGIN_PATH = `${ADMIN_BASE_PATH}/login`;
+const LOGIN_SUBMIT_PATH = `${LOGIN_PATH}/submit`;
+
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /** True when a state-changing request comes from another site. The admin cookie is SameSite=Lax, this is the second layer. */
 export function isCrossSiteMutation(method: string, origin: string | null, host: string | null, fetchSite: string | null) {
   if (SAFE_METHODS.has(method.toUpperCase())) return false;
   if (fetchSite === "cross-site" || fetchSite === "same-site") return true;
+  // Browsers set Sec-Fetch-Site themselves and a page cannot change it. Under Referrer-Policy: no-referrer a same-origin form post sends "Origin: null", so trust this first.
+  if (fetchSite === "same-origin") return false;
   if (origin === null) return false;
   try {
     return new URL(origin).host !== host;
@@ -24,7 +29,7 @@ function noStore(res: NextResponse) {
   return res;
 }
 
-// Admin gate. Without a valid cookie every admin page and admin API returns 404.
+// Admin gate. Without a valid cookie every admin page and admin API returns 404, except the login page and its form post.
 /** "/adminmatt/x" -> "/adminMatt/x". Null when the path is not the admin base in a different case. */
 export function canonicalAdminPath(pathname: string): string | null {
   const lower = ADMIN_BASE_PATH.toLowerCase();
@@ -50,7 +55,29 @@ export function proxy(req: NextRequest) {
   };
   if (target.startsWith(`${ADMIN_BASE_PATH}/k/`)) return noStore(rewriteTo(() => NextResponse.next()));
   const ok = isValidCookie(req.cookies.get(ADMIN_COOKIE)?.value, adminKey);
-  if (!ok) return noStore(new NextResponse("Not found", { status: 404 }));
+  // A trailing slash does not change which page it is.
+  const route = target.length > 1 && target.endsWith("/") ? target.slice(0, -1) : target;
+  const method = req.method.toUpperCase();
+  const isRead = method === "GET" || method === "HEAD";
+  if (ok && route === LOGIN_PATH) {
+    return noStore(NextResponse.redirect(new URL(ADMIN_BASE_PATH, req.nextUrl)));
+  }
+  if (!ok) {
+    // Visitors without the cookie see the login page at the dashboard address and at /login. Nothing else is public.
+    if (isRead && (route === ADMIN_BASE_PATH || route === LOGIN_PATH)) {
+      const res = noStore(NextResponse.rewrite(new URL(LOGIN_PATH, req.nextUrl)));
+      res.headers.set("X-Robots-Tag", "noindex, nofollow");
+      return res;
+    }
+    // The password form posts here. Same-origin only.
+    if (method === "POST" && route === LOGIN_SUBMIT_PATH) {
+      if (isCrossSiteMutation(method, req.headers.get("origin"), req.headers.get("host"), req.headers.get("sec-fetch-site"))) {
+        return noStore(new NextResponse("Forbidden", { status: 403 }));
+      }
+      return noStore(rewriteTo(() => NextResponse.next()));
+    }
+    return noStore(new NextResponse("Not found", { status: 404 }));
+  }
   if (isCrossSiteMutation(req.method, req.headers.get("origin"), req.headers.get("host"), req.headers.get("sec-fetch-site"))) {
     return noStore(new NextResponse("Forbidden", { status: 403 }));
   }

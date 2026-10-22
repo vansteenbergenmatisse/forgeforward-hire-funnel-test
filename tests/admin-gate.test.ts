@@ -16,7 +16,7 @@ const keyCtx = (key: string) => ({ params: Promise.resolve({ key }) }) as never;
 describe("admin gate", () => {
   it("serves the dashboard under /adminMatt", () => {
     expect(ADMIN_BASE_PATH).toBe("/adminMatt");
-    expect(config.matcher).toEqual(["/adminMatt/:path*", "/api/admin/:path*"]);
+    expect(config.matcher).toEqual(["/:base([aA][dD][mM][iI][nN][mM][aA][tT][tT])/:path*", "/api/admin/:path*"]);
   });
 
   it("wrong key gets 404, no cookie, and counts as a failed attempt", async () => {
@@ -45,7 +45,7 @@ describe("admin gate", () => {
   });
 
   it("proxy returns 404 on /adminMatt without the cookie and passes with it", async () => {
-    expect(proxy(new NextRequest("http://x/adminMatt")).status).toBe(404);
+    expect(proxy(new NextRequest("http://x/adminMatt/test")).status).toBe(404);
     expect(proxy(new NextRequest("http://x/api/admin/projects")).status).toBe(404);
     const set = await GET(new NextRequest(`http://x/adminMatt/k/${KEY}`), keyCtx(KEY));
     const value = /ff_admin=([^;]+)/.exec(set.headers.get("set-cookie") ?? "")![1];

@@ -25,6 +25,10 @@ describe("isCrossSiteMutation", () => {
     expect(isCrossSiteMutation("DELETE", null, "app.example", "cross-site")).toBe(true);
     expect(isCrossSiteMutation("POST", "not a url", "app.example", null)).toBe(true);
   });
+  it("allows a same-origin post that carries Origin: null", () => {
+    expect(isCrossSiteMutation("POST", "null", "app.example", "same-origin")).toBe(false);
+    expect(isCrossSiteMutation("POST", "null", "app.example", null)).toBe(true);
+  });
   it("allows same-origin writes and clients that send no origin", () => {
     expect(isCrossSiteMutation("POST", "https://app.example", "app.example", "same-origin")).toBe(false);
     expect(isCrossSiteMutation("POST", null, "app.example", null)).toBe(false);
@@ -34,7 +38,7 @@ describe("isCrossSiteMutation", () => {
 describe("proxy", () => {
   it("answers 404 without a cookie", () => {
     process.env.ADMIN_KEY = KEY;
-    expect(proxy(req("/adminMatt")).status).toBe(404);
+    expect(proxy(req("/adminMatt/test")).status).toBe(404);
   });
   it("lets a valid cookie through with noindex", () => {
     process.env.ADMIN_KEY = KEY;
@@ -55,7 +59,7 @@ describe("proxy", () => {
     expect(proxy(req("/adminMatt", { cookie: cookieValue(short) })).status).toBe(404);
     expect(proxy(req("/adminMatt/k/anything")).status).toBe(404);
     delete process.env.ADMIN_KEY;
-    expect(proxy(req("/adminMatt")).status).toBe(404);
+    expect(proxy(req("/adminMatt/test")).status).toBe(404);
   });
 });
 
@@ -72,7 +76,7 @@ describe("admin path in any letter case", () => {
 
   it("answers 404 for every spelling without the cookie, and serves the page with it", () => {
     process.env.ADMIN_KEY = KEY;
-    for (const path of ["/adminMatt", "/adminmatt", "/ADMINMATT/p/a"]) {
+    for (const path of ["/adminMatt/p/a", "/adminmatt/test", "/ADMINMATT/p/a"]) {
       expect(proxy(new NextRequest(`https://x.test${path}`)).status).toBe(404);
     }
     const cookie = `${ADMIN_COOKIE}=${cookieValue(KEY)}`;
@@ -80,5 +84,59 @@ describe("admin path in any letter case", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("x-middleware-rewrite")).toContain("/adminMatt");
     expect(proxy(new NextRequest("https://x.test/adminmatt/k/abc")).headers.get("x-middleware-rewrite")).toContain("/adminMatt/k/abc");
+  });
+});
+
+describe("password login routes", () => {
+  const url = (path: string, init?: ConstructorParameters<typeof NextRequest>[1]) => new NextRequest(`https://x.test${path}`, init);
+  const withCookie = () => ({ headers: { cookie: `${ADMIN_COOKIE}=${cookieValue(KEY)}` } });
+
+  it("rewrites the dashboard address and the login page to the login page without the cookie", () => {
+    process.env.ADMIN_KEY = KEY;
+    for (const path of ["/adminMatt", "/adminMatt/", "/adminmatt", "/ADMINMATT/", "/adminMatt/login", "/adminMatt/login/", "/adminmatt/login"]) {
+      const res = proxy(url(path));
+      expect(res.status, path).toBe(200);
+      expect(res.headers.get("x-middleware-rewrite"), path).toContain("/adminMatt/login");
+      expect(res.headers.get("x-robots-tag"), path).toContain("noindex");
+    }
+  });
+
+  it("keeps every other admin path and the admin API at 404 without the cookie", () => {
+    process.env.ADMIN_KEY = KEY;
+    for (const path of ["/adminMatt/p/a", "/adminMatt/test", "/adminMatt/logout", "/adminMatt/login/x", "/adminMatt/loginx", "/api/admin/projects"]) {
+      expect(proxy(url(path)).status, path).toBe(404);
+    }
+    expect(proxy(url("/adminMatt/login/submit")).status).toBe(404);
+    expect(proxy(url("/adminMatt", { method: "POST" })).status).toBe(404);
+    expect(proxy(url("/adminMatt/login", { method: "POST" })).status).toBe(404);
+  });
+
+  it("still lets the key link through", () => {
+    process.env.ADMIN_KEY = KEY;
+    expect(proxy(url("/adminMatt/k/abc")).status).toBe(200);
+  });
+
+  it("redirects the login page to the dashboard with a valid cookie", () => {
+    process.env.ADMIN_KEY = KEY;
+    for (const path of ["/adminMatt/login", "/adminmatt/login/"]) {
+      const res = proxy(url(path, withCookie()));
+      expect(res.status, path).toBe(307);
+      expect(new URL(res.headers.get("location") as string).pathname).toBe("/adminMatt");
+    }
+    expect(proxy(url("/adminMatt", withCookie())).status).toBe(200);
+  });
+
+  it("accepts a same-origin login post and refuses a cross-site one", () => {
+    process.env.ADMIN_KEY = KEY;
+    const post = (headers: Record<string, string>) => proxy(url("/adminMatt/login/submit", { method: "POST", headers: { host: "x.test", ...headers } }));
+    expect(post({ origin: "https://x.test", "sec-fetch-site": "same-origin" }).status).toBe(200);
+    expect(post({ origin: "https://evil.example" }).status).toBe(403);
+    expect(post({ "sec-fetch-site": "cross-site" }).status).toBe(403);
+  });
+
+  it("fails closed when the admin key is short, login page included", () => {
+    process.env.ADMIN_KEY = "s".repeat(31);
+    expect(proxy(url("/adminMatt")).status).toBe(404);
+    expect(proxy(url("/adminMatt/login")).status).toBe(404);
   });
 });

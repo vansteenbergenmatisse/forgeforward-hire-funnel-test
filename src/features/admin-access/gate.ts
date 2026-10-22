@@ -39,3 +39,14 @@ export function isValidCookie(value: string | undefined, adminKey: string | unde
   if (Number(exp) * 1000 <= now.getTime()) return false;
   return safeEqual(sig, sign(adminKey, `${exp}.${id}`));
 }
+
+/** Flags of the admin cookie. The key link and the password login both set it with these. */
+export function adminCookieOptions(secure: boolean) {
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: ADMIN_COOKIE_MAX_AGE,
+  };
+}

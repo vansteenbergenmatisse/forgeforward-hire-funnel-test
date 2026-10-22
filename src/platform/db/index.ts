@@ -30,5 +30,5 @@ export async function closeDb() {
 }
 
 export * as tables from "./schema";
-export { tryRecordRateLimitHit } from "./rate-limit";
+export { releaseRateLimitHit, tryRecordRateLimitHit } from "./rate-limit";
 export { pruneOperationalTables } from "./prune";
