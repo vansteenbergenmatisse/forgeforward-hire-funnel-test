@@ -113,10 +113,12 @@ const checks: Record<CheckId, Check> = {
 
   async upload(ctx, state) {
     const resumeToken = need(state, "resumeToken");
-    const urls = await call(ctx, "/api/apply/upload-url", { json: { resumeToken, kind: "video", mime: "video/webm", withThumb: true } });
+    const sample = await sampleVideo();
+    const urls = await call(ctx, "/api/apply/upload-url", {
+      json: { resumeToken, kind: "video", mime: "video/webm", bytes: sample.bytes.length, withThumb: true, thumbBytes: TINY_JPEG.length },
+    });
     const u = urls.body as { key?: string; putUrl?: string; thumbKey?: string; thumbPutUrl?: string } | null;
     if (urls.status !== 200 || !u?.key || !u.putUrl) throw new CheckFailure(`/api/apply/upload-url failed. ${errorText(urls)}`);
-    const sample = await sampleVideo();
     const put = await fetch(u.putUrl, { method: "PUT", headers: { "content-type": "video/webm" }, body: new Uint8Array(sample.bytes) });
     if (!put.ok) throw new CheckFailure(`The signed video upload was refused (HTTP ${put.status}). Check the R2 bucket CORS and token.`);
     if (u.thumbKey && u.thumbPutUrl) {
