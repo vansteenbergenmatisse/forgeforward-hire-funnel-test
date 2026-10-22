@@ -8,7 +8,8 @@ const globalForDb = globalThis as unknown as { __sql?: postgres.Sql; __db?: Db }
 
 export function db(): Db {
   if (!globalForDb.__db) {
-    const url = process.env.DATABASE_URL;
+    // APP_DATABASE_URL wins: the Neon integration rewrites DATABASE_URL on every Vercel production deploy.
+    const url = process.env.APP_DATABASE_URL || process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL is not set");
     globalForDb.__sql = postgres(url, { max: 10, prepare: false });
     globalForDb.__db = drizzle(globalForDb.__sql, { schema });
