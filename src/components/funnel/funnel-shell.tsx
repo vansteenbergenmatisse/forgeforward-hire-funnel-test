@@ -7,7 +7,7 @@ import { ProgressBar } from "./progress-bar";
 export function FunnelShell({ step, children }: { step: number; children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-ivory text-charcoal">
-      <header className="shrink-0 px-5 pt-3.5 md:grid md:grid-cols-[1fr_560px_1fr] md:items-center md:border-b md:border-line md:bg-white md:px-10 md:py-[22px]">
+      <header className="shrink-0 px-5 pt-3.5 md:grid md:grid-cols-[minmax(max-content,1fr)_minmax(0,560px)_minmax(0,1fr)] md:items-center md:gap-6 md:border-b md:border-line md:bg-white md:px-10 md:py-[22px]">
         <div className="flex justify-center md:justify-start">
           <Logo height={22} />
         </div>
