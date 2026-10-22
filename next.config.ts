@@ -2,18 +2,14 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-// Videos, thumbnails and uploads go to and from R2 over signed URLs. Task pictures must come from this site, R2 or a
-// host listed in CSP_IMG_HOSTS (space separated, https only, for example "images.example.com *.cdn.example.com").
-const extraImgHosts = (process.env.CSP_IMG_HOSTS ?? "")
-  .split(/\s+/)
-  .filter((h) => /^(\*\.)?[a-z0-9.-]+$/i.test(h))
-  .map((h) => `https://${h}`);
+// Videos, thumbnails and uploads go to and from R2 over signed URLs. Task pictures may come from any https site
+// (decision 2026-10-22); the sanitizer already allows https images only and sets no-referrer.
 // 'unsafe-inline' scripts stay because Next injects inline bootstrap scripts and no nonce is wired up.
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src ${["'self'", "data:", "blob:", "https://*.r2.cloudflarestorage.com", ...extraImgHosts].join(" ")}`,
+  "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https://*.r2.cloudflarestorage.com",
   `connect-src 'self' https://*.r2.cloudflarestorage.com${isDev ? " ws: wss:" : ""}`,
   "font-src 'self' data:",

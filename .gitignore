@@ -42,3 +42,6 @@ next-env.d.ts
 !.env.example
 /design-reference/
 /.next-*/
+
+# Local Claude Code MCP config (Neon). Not shared.
+.mcp.json
