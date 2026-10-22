@@ -2,6 +2,8 @@
 
 Last updated: 2026-10-21. This is the single list of what is left. Read it together with CLAUDE.md (how the repo works) and PLAN.md (progress and deviations).
 
+Decision 2026-10-22: no automatic sending. The app stays in link mode (the dashboard opens a prefilled WhatsApp, SMS or email that you send yourself), so Resend, WhatsApp Cloud API and GoHighLevel keys (A9 to A12, A15) are not needed. The provider code stays in the repo, off.
+
 State in one line: front-end and backend are built, pushed and deployed (Neon, R2, Vercel linked). The first deploy is live at https://forge-hire.vercel.app. Left: a separate production database, the live test console run, GitHub backup secrets, and the Resend, WhatsApp, GHL and Cal.com keys.
 
 ---
@@ -34,10 +36,10 @@ I create `TEST_DATABASE_URL` (a second Neon branch or database) and `ADMIN_KEY` 
 
 | # | Task | How |
 |---|---|---|
-| A9 SLOW | Verify your sending domain in Resend | resend.com, Domains, add the domain, add the DNS records. DNS can take hours. Then create an API key. Needs `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO`. |
-| A10 SLOW | Submit the WhatsApp template "Interview invite" for approval | Meta WhatsApp Manager, Message templates. Variables in order: `first_name`, `cal_link`. Meta approval can take hours or days. Until it is approved WhatsApp runs in link mode. Name it `interview_invite`, language `en`, or tell me what you chose. |
-| A11 | WhatsApp Cloud API credentials | Meta for Developers, your app, WhatsApp, API Setup: `WA_PHONE_NUMBER_ID`. Make a permanent token through a System User: `WA_ACCESS_TOKEN`. App Settings, Basic: `WA_APP_SECRET`. `WA_VERIFY_TOKEN` is any random string (I generate it, you paste it into Meta's webhook setup). |
-| A12 | GoHighLevel | Settings, Private Integrations, create one with contacts and conversations/messages scopes: `GHL_PRIVATE_TOKEN`. `GHL_LOCATION_ID` is in Settings, Business Profile, or in the sub-account URL. |
+| A9 SLOW NOT NEEDED | Verify your sending domain in Resend | resend.com, Domains, add the domain, add the DNS records. DNS can take hours. Then create an API key. Needs `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO`. |
+| A10 SLOW NOT NEEDED | Submit the WhatsApp template "Interview invite" for approval | Meta WhatsApp Manager, Message templates. Variables in order: `first_name`, `cal_link`. Meta approval can take hours or days. Until it is approved WhatsApp runs in link mode. Name it `interview_invite`, language `en`, or tell me what you chose. |
+| A11 NOT NEEDED | WhatsApp Cloud API credentials | Meta for Developers, your app, WhatsApp, API Setup: `WA_PHONE_NUMBER_ID`. Make a permanent token through a System User: `WA_ACCESS_TOKEN`. App Settings, Basic: `WA_APP_SECRET`. `WA_VERIFY_TOKEN` is any random string (I generate it, you paste it into Meta's webhook setup). |
+| A12 NOT NEEDED | GoHighLevel | Settings, Private Integrations, create one with contacts and conversations/messages scopes: `GHL_PRIVATE_TOKEN`. `GHL_LOCATION_ID` is in Settings, Business Profile, or in the sub-account URL. |
 
 ### 4. After the funnel is deployed (Phase 3)
 
@@ -45,7 +47,7 @@ I create `TEST_DATABASE_URL` (a second Neon branch or database) and `ADMIN_KEY` 
 |---|---|---|
 | A13 SKIPPED | Cal.com webhook (decision: not used) | Cal.com, Settings, Developer, Webhooks, New. Paste the webhook URL I give you (`https://apply.forgeforward.io/api/webhooks/calcom`), triggers BOOKING_CREATED, BOOKING_RESCHEDULED, BOOKING_CANCELLED, and set a secret: `CALCOM_WEBHOOK_SECRET`. |
 | A14 | Cal.com event link | The public URL of your interview event type. Set it in project Settings, General, "Cal.com event link". |
-| A15 | Meta webhook for WhatsApp | After deploy, paste `https://apply.forgeforward.io/api/webhooks/whatsapp` and your `WA_VERIFY_TOKEN` into the Meta app webhook settings. |
+| A15 NOT NEEDED | Meta webhook for WhatsApp | After deploy, paste `https://apply.forgeforward.io/api/webhooks/whatsapp` and your `WA_VERIFY_TOKEN` into the Meta app webhook settings. |
 
 ### 4b. Deploy-time (GitHub and Vercel)
 
