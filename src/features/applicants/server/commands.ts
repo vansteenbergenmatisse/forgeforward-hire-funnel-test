@@ -95,7 +95,7 @@ async function listAll(prefix: string): Promise<string[]> {
 
 /**
  * Deletes an applicant. R2 files go first: if a delete fails we keep the row so nothing is orphaned,
- * and the caller gets `files_failed`. Events and messages cascade in the database.
+ * and the caller gets `files_failed`. Events and messages cascade in the database. System errors and "applied before" links to it are cleared too.
  */
 export async function deleteApplicant(
   id: string,
@@ -110,6 +110,9 @@ export async function deleteApplicant(
     return { ok: false, error: "files_failed" };
   }
   await db().delete(applicants).where(eq(applicants.id, id));
+  // Rows without a foreign key that still point at the applicant.
+  await db().delete(tables.systemErrors).where(eq(tables.systemErrors.applicantId, id));
+  await db().update(applicants).set({ previousApplicantId: null }).where(eq(applicants.previousApplicantId, id));
   return { ok: true };
 }
 

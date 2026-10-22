@@ -85,8 +85,8 @@ export function StageRow({
             ))}
           </select>
           <div className="flex items-center gap-2.5">
-            <Toggle checked={stage.isPositive} label={`Keep videos for ${stage.name}`} onChange={onPositive} />
-            <span className="text-[13.5px] font-bold">{stage.isPositive ? "Keep videos" : "Normal retention"}</span>
+            <Toggle checked={stage.isPositive} label={`Keep applicants for ${stage.name}`} onChange={onPositive} />
+            <span className="text-[13.5px] font-bold">{stage.isPositive ? "Keep applicants" : "Deleted after 30 days"}</span>
           </div>
           <button
             type="button"

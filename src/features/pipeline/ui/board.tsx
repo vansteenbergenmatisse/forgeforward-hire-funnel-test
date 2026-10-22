@@ -53,7 +53,7 @@ export function Board({ applicants, allApplicants, stages, question, now, filter
     if (!drop) return;
     const a = allApplicants.find((x) => x.id === drop.applicantId);
     if (!a) return;
-    const days = warnOnMoveOutOfPositive(a, drop.toStageId, stages, now);
+    const days = warnOnMoveOutOfPositive(a, drop.toStageId, stages);
     if (days === null) return actions.moveToStage(a.id, drop.toStageId);
     setPending({
       applicantId: a.id,

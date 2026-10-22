@@ -242,7 +242,7 @@ const checks: Record<CheckId, Check> = {
   async retention() {
     const r = await runRetention({ dryRun: true, budgetMs: 20_000 });
     const more = r.done ? "" : " or more";
-    return { detail: `Would delete ${r.files} files from ${r.applicants}${more} applicants` };
+    return { detail: `Would delete ${r.applicants}${more} applicants and ${r.files} files` };
   },
 
   async backup() {

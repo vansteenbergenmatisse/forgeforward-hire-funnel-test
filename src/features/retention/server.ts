@@ -1,9 +1,10 @@
-import { and, asc, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm";
+import { and, asc, eq, gt, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { db, tables } from "@/platform/db";
 import { deleteObject, headObject, listObjects, withPrefix } from "@/platform/r2";
 import { recordSystemError } from "@/platform/logging/system-errors";
 import { DEFAULT_BUDGET_MS, mapLimit } from "./budget";
-import { applicantFolders, mediaKeys, ownFolders, retentionCutoff } from "./rules";
+import { deleteApplicant } from "@/features/applicants/server";
+import { applicantFolders, isRetentionEligible, mediaKeys, ownFolders, retentionCutoff, type RetentionSubject } from "./rules";
 
 const BATCH = 25;
 const CONCURRENCY = 5;
@@ -34,7 +35,10 @@ export type RunOptions = {
 
 export type RetentionResult = {
   dryRun: boolean;
+  /** Applicants that were eligible and looked at in this call. */
   applicants: number;
+  /** Applicants fully deleted. Always 0 in a dry run. */
+  deleted: number;
   files: number;
   failed: number;
   /** False when the time budget ran out. Call again with `nextCursor`. */
@@ -43,77 +47,141 @@ export type RetentionResult = {
   sample: { applicantId: string; files: number }[];
 };
 
+const a = tables.applicants;
+
+/** Latest stage_changed event time of the applicant. */
+const lastStageEvent = sql<Date | null>`(select max(e.created_at) from applicant_events e where e.applicant_id = ${a.id} and e.type = 'stage_changed')`;
+
+/** SQL twin of retentionClock: the latest of created, completed, last stage change and the latest stage_changed event. */
+const clockSql = sql`greatest(${a.createdAt}, ${a.completedAt}, ${a.lastStageChangeAt}, ${lastStageEvent})`;
+
+const subjectColumns = {
+  id: a.id,
+  videoKey: a.videoKey,
+  thumbKey: a.thumbKey,
+  taskFileKey: a.taskFileKey,
+  createdAt: a.createdAt,
+  completedAt: a.completedAt,
+  lastStageChangeAt: a.lastStageChangeAt,
+  lastStageEventAt: sql<string | Date | null>`${lastStageEvent}`.as("last_stage_event_at"),
+  slug: tables.projects.slug,
+  stageIsPositive: tables.stages.isPositive,
+};
+
+type Row = {
+  id: string;
+  videoKey: string | null;
+  thumbKey: string | null;
+  taskFileKey: string | null;
+  createdAt: Date;
+  completedAt: Date | null;
+  lastStageChangeAt: Date | null;
+  lastStageEventAt: string | Date | null;
+  slug: string;
+  stageIsPositive: boolean | null;
+};
+
+function subjectOf(row: Row): RetentionSubject {
+  return {
+    createdAt: row.createdAt,
+    completedAt: row.completedAt,
+    lastStageChangeAt: row.lastStageChangeAt,
+    lastStageEventAt: row.lastStageEventAt ? new Date(row.lastStageEventAt) : null,
+    stageIsPositive: row.stageIsPositive,
+  };
+}
+
+async function loadRow(id: string): Promise<Row | null> {
+  const [row] = await db()
+    .select(subjectColumns)
+    .from(a)
+    .innerJoin(tables.projects, eq(a.projectId, tables.projects.id))
+    .leftJoin(tables.stages, eq(a.stageId, tables.stages.id))
+    .where(eq(a.id, id))
+    .limit(1);
+  return (row as Row | undefined) ?? null;
+}
+
 /**
- * Deletes media of applicants older than 30 days that are not in a positive stage. Resumable by cursor.
- * Applicants who never completed a video are swept too: everything under their own folders goes, then they are marked done.
+ * Deletes applicants completely (row, answers, events, messages, notes, R2 files) when they sit in a non-positive stage
+ * or never finished, and 30 days have passed since their last stage change. Positive stages are never touched.
+ * Resumable by cursor. Safe to re-run: deleted applicants are gone, and every applicant is checked again right before deletion.
+ * Writes one admin_audit row per real run with counts only.
  */
 export async function runRetention(opts: RunOptions = {}): Promise<RetentionResult> {
   const now = opts.now ?? new Date();
   const started = Date.now();
   const budget = opts.budgetMs ?? DEFAULT_BUDGET_MS;
   const dryRun = Boolean(opts.dryRun);
-  const a = tables.applicants;
-  const result: RetentionResult = { dryRun, applicants: 0, files: 0, failed: 0, done: true, sample: [] };
+  const result: RetentionResult = { dryRun, applicants: 0, deleted: 0, files: 0, failed: 0, done: true, sample: [] };
   let cursor = opts.after;
 
-  for (;;) {
-    if (Date.now() - started > budget) {
-      result.done = false;
-      result.nextCursor = cursor;
-      return result;
-    }
-    const rows = await db()
-      .select({
-        id: a.id,
-        videoKey: a.videoKey,
-        thumbKey: a.thumbKey,
-        taskFileKey: a.taskFileKey,
-        slug: tables.projects.slug,
-      })
-      .from(a)
-      .innerJoin(tables.projects, eq(a.projectId, tables.projects.id))
-      .leftJoin(tables.stages, eq(a.stageId, tables.stages.id))
-      .where(
-        and(
-          lt(a.createdAt, retentionCutoff(now)),
-          isNull(a.videoDeletedAt),
-          or(isNull(a.stageId), eq(tables.stages.isPositive, false)),
-          cursor ? gt(a.id, cursor) : undefined,
-        ),
-      )
-      .orderBy(asc(a.id))
-      .limit(BATCH);
-    if (rows.length === 0) return result;
+  try {
+    for (;;) {
+      if (Date.now() - started > budget) {
+        result.done = false;
+        result.nextCursor = cursor;
+        return result;
+      }
+      const rows = (await db()
+        .select(subjectColumns)
+        .from(a)
+        .innerJoin(tables.projects, eq(a.projectId, tables.projects.id))
+        .leftJoin(tables.stages, eq(a.stageId, tables.stages.id))
+        .where(
+          and(
+            or(isNull(a.stageId), eq(tables.stages.isPositive, false)),
+            sql`${clockSql} < ${retentionCutoff(now).toISOString()}::timestamptz`,
+            cursor ? gt(a.id, cursor) : undefined,
+          ),
+        )
+        .orderBy(asc(a.id))
+        .limit(BATCH)) as Row[];
+      if (rows.length === 0) return result;
 
-    await mapLimit(rows, CONCURRENCY, async (row) => {
-      const known = mediaKeys(row);
-      result.applicants += 1;
-      try {
-        const keys = [...new Set([...known, ...(await folderKeys(row.id, row.slug, known))])];
-        result.files += keys.length;
-        if (result.sample.length < 20) result.sample.push({ applicantId: row.id, files: keys.length });
-        if (dryRun) return;
-        for (const key of keys) await deleteObject(key);
-        await db().update(a).set({ videoDeletedAt: new Date() }).where(eq(a.id, row.id));
-        if (keys.length > 0) {
-          await db().insert(tables.applicantEvents).values({
+      await mapLimit(rows, CONCURRENCY, async (listed) => {
+        // Check again with the current data: the applicant may have been moved since the list was read.
+        const row = (await loadRow(listed.id)) ?? null;
+        if (!row || !isRetentionEligible(subjectOf(row), now)) return;
+        const known = mediaKeys(row);
+        result.applicants += 1;
+        try {
+          const keys = [...new Set([...known, ...(await folderKeys(row.id, row.slug, known))])];
+          result.files += keys.length;
+          if (result.sample.length < 20) result.sample.push({ applicantId: row.id, files: keys.length });
+          if (dryRun) return;
+          for (const key of keys) await deleteObject(key);
+          const out = await deleteApplicant(row.id);
+          if (out.ok || out.error === "not_found") result.deleted += 1;
+          else throw new Error(out.error);
+        } catch (err) {
+          result.failed += 1;
+          await recordSystemError({
+            source: "retention",
+            message: "Could not delete an applicant. It will retry on the next run.",
             applicantId: row.id,
-            type: "media_deleted",
-            data: { files: keys.length },
+            data: { error: err instanceof Error ? err.message : "unknown" },
           });
         }
-      } catch (err) {
-        result.failed += 1;
-        await recordSystemError({
-          source: "retention",
-          message: "Could not delete media. It will retry on the next run.",
-          applicantId: row.id,
-          data: { error: err instanceof Error ? err.message : "unknown" },
-        });
-      }
+      });
+      cursor = rows[rows.length - 1].id;
+      if (rows.length < BATCH) return result;
+    }
+  } finally {
+    if (!dryRun) await writeAudit(result);
+  }
+}
+
+/** One row per run. Counts only, never names, emails or ids of applicants. */
+async function writeAudit(r: RetentionResult): Promise<void> {
+  try {
+    await db().insert(tables.adminAudit).values({
+      action: "retention_run",
+      targetType: "system",
+      detail: { eligible: r.applicants, deleted: r.deleted, files: r.files, failed: r.failed, done: r.done },
     });
-    cursor = rows[rows.length - 1].id;
-    if (rows.length < BATCH) return result;
+  } catch {
+    // The audit row must never stop a run.
   }
 }
 

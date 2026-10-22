@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applicantFolders, daysUntilDeletion, isRetentionEligible, mediaKeys, ownFolders, retentionCutoff, type RetentionSubject } from "./rules";
+import { APPLICANT_RETENTION_DAYS, applicantFolders, daysUntilDeletion, isRetentionEligible, mediaKeys, ownFolders, retentionClock, retentionCutoff, type RetentionSubject } from "./rules";
 
 const now = new Date("2026-10-21T03:00:00Z");
 const daysAgo = (n: number) => new Date(now.getTime() - n * 86_400_000);
@@ -7,53 +7,64 @@ const daysAgo = (n: number) => new Date(now.getTime() - n * 86_400_000);
 const base: RetentionSubject = {
   createdAt: daysAgo(31),
   stageIsPositive: false,
-  videoDeletedAt: null,
-  videoKey: "videos/a.webm",
-  thumbKey: "thumbs/a.jpg",
-  taskFileKey: null,
 };
 
 describe("retention eligibility", () => {
-  it("deletes media older than 30 days outside a positive stage", () => {
+  it("uses a named 30 day constant", () => {
+    expect(APPLICANT_RETENTION_DAYS).toBe(30);
+  });
+  it("is eligible 31 days after creation in a non-positive stage (New, Did task, Rejected, custom)", () => {
     expect(isRetentionEligible(base, now)).toBe(true);
   });
-  it("keeps media of applicants younger than 30 days", () => {
+  it("keeps applicants younger than 30 days, and exactly 30 days", () => {
     expect(isRetentionEligible({ ...base, createdAt: daysAgo(29) }, now)).toBe(false);
     expect(isRetentionEligible({ ...base, createdAt: retentionCutoff(now) }, now)).toBe(false);
   });
-  it("keeps media in a positive stage, and checks again once the card moves out", () => {
-    expect(isRetentionEligible({ ...base, stageIsPositive: true }, now)).toBe(false);
-    expect(isRetentionEligible({ ...base, stageIsPositive: false }, now)).toBe(true);
+  it("never deletes in a positive stage, however old", () => {
+    expect(isRetentionEligible({ ...base, createdAt: daysAgo(400), stageIsPositive: true }, now)).toBe(false);
   });
   it("counts Did not finish applicants (no stage) as not positive", () => {
     expect(isRetentionEligible({ ...base, stageIsPositive: null }, now)).toBe(true);
+    expect(isRetentionEligible({ ...base, stageIsPositive: null, createdAt: daysAgo(5) }, now)).toBe(false);
   });
-  it("skips applicants that are already deleted", () => {
-    expect(isRetentionEligible({ ...base, videoDeletedAt: daysAgo(1) }, now)).toBe(false);
+  it("starts the clock at the last stage change, so a card moved today into Rejected gets 30 more days", () => {
+    const moved = { ...base, createdAt: daysAgo(90), lastStageChangeAt: now, lastStageEventAt: now };
+    expect(isRetentionEligible(moved, now)).toBe(false);
+    expect(isRetentionEligible(moved, new Date(now.getTime() + 29 * 86_400_000))).toBe(false);
+    expect(isRetentionEligible(moved, new Date(now.getTime() + 31 * 86_400_000))).toBe(true);
   });
-  it("includes applicants who never finished a video, so their stray uploads get swept", () => {
-    expect(isRetentionEligible({ ...base, videoKey: null, thumbKey: null }, now)).toBe(true);
-    expect(isRetentionEligible({ ...base, videoKey: null, thumbKey: null, createdAt: daysAgo(5) }, now)).toBe(false);
+  it("uses the latest of the column and the stage_changed event", () => {
+    expect(isRetentionEligible({ ...base, lastStageChangeAt: daysAgo(40), lastStageEventAt: daysAgo(10) }, now)).toBe(false);
+    expect(isRetentionEligible({ ...base, lastStageChangeAt: daysAgo(10), lastStageEventAt: null }, now)).toBe(false);
+    expect(isRetentionEligible({ ...base, lastStageChangeAt: daysAgo(35), lastStageEventAt: daysAgo(33) }, now)).toBe(true);
+  });
+  it("falls back to completion, then creation, when no stage change exists", () => {
+    expect(retentionClock({ createdAt: daysAgo(50), completedAt: daysAgo(10) }).getTime()).toBe(daysAgo(10).getTime());
+    expect(retentionClock({ createdAt: daysAgo(50) }).getTime()).toBe(daysAgo(50).getTime());
+  });
+  it("is no longer eligible once moved out of Rejected into a positive stage", () => {
+    const old = { ...base, createdAt: daysAgo(90) };
+    expect(isRetentionEligible({ ...old, stageIsPositive: false }, now)).toBe(true);
+    expect(isRetentionEligible({ ...old, stageIsPositive: true }, now)).toBe(false);
   });
   it("lists only the keys that exist", () => {
-    expect(mediaKeys(base)).toEqual(["videos/a.webm", "thumbs/a.jpg"]);
+    expect(mediaKeys({ videoKey: "videos/a.webm", thumbKey: "thumbs/a.jpg", taskFileKey: null })).toEqual(["videos/a.webm", "thumbs/a.jpg"]);
     expect(mediaKeys({ videoKey: "", thumbKey: null, taskFileKey: "t/x.pdf" })).toEqual(["t/x.pdf"]);
   });
 });
 
 describe("daysUntilDeletion", () => {
-  const s = { stageIsPositive: false as boolean | null, videoDeletedAt: null };
+  const s = { stageIsPositive: false as boolean | null };
   it("shows nothing before day 25", () => {
     expect(daysUntilDeletion({ ...s, createdAt: daysAgo(24) }, now)).toBeNull();
   });
-  it("counts down from day 25", () => {
+  it("counts down from day 25 since the last stage change", () => {
     expect(daysUntilDeletion({ ...s, createdAt: daysAgo(25) }, now)).toBe(5);
-    expect(daysUntilDeletion({ ...s, createdAt: daysAgo(29) }, now)).toBe(1);
     expect(daysUntilDeletion({ ...s, createdAt: daysAgo(40) }, now)).toBe(0);
+    expect(daysUntilDeletion({ ...s, createdAt: daysAgo(40), lastStageChangeAt: daysAgo(26) }, now)).toBe(4);
   });
-  it("shows nothing for protected or already deleted cards", () => {
+  it("shows nothing for protected cards", () => {
     expect(daysUntilDeletion({ ...s, stageIsPositive: true, createdAt: daysAgo(27) }, now)).toBeNull();
-    expect(daysUntilDeletion({ ...s, videoDeletedAt: daysAgo(1) as unknown as null, createdAt: daysAgo(27) }, now)).toBeNull();
   });
 });
 

@@ -28,7 +28,7 @@ export function StagesTab({ api }: { api: SettingsApi }) {
   const setStages = (next: StageDef[]) => api.update((d) => ({ ...d, stages: next }));
   const patch = (id: string, p: Partial<StageDef>) => setStages(stages.map((s) => (s.id === id ? { ...s, ...p } : s)));
 
-  // Turning "Keep videos" off puts every card's video on the 30 day clock, so a stage with cards asks first.
+  // Turning "Keep videos" off puts every card on the 30 day delete clock, so a stage with cards asks first.
   function onPositive(stage: StageDef, keep: boolean) {
     if (!keep && stopKeepingWarning(stage, usage.countCardsInStage(stage.id))) return setUnkeeping(stage);
     patch(stage.id, { isPositive: keep });
@@ -119,12 +119,12 @@ export function StagesTab({ api }: { api: SettingsApi }) {
         )}
       </div>
       <p className="mt-1 max-w-3xl text-[14px] leading-snug text-muted">
-        Videos in a kept stage never auto-delete. A stage with a role cannot be deleted until you move the role. Deleting a stage with cards asks where to move them first.
+        Applicants in a kept stage are never deleted automatically. In every other stage, all applicant data and files are deleted 30 days after the last stage change. A stage with a role cannot be deleted until you move the role. Deleting a stage with cards asks where to move them first.
       </p>
       <ConfirmDialog
         open={!!unkeeping}
-        title={unkeeping ? `Stop keeping videos in ${unkeeping.name}?` : "Stop keeping videos?"}
-        confirmLabel="Stop keeping videos"
+        title={unkeeping ? `Stop keeping applicants in ${unkeeping.name}?` : "Stop keeping applicants?"}
+        confirmLabel="Stop keeping applicants"
         tone="primary"
         onCancel={() => setUnkeeping(null)}
         onConfirm={() => {

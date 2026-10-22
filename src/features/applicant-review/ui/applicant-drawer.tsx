@@ -71,7 +71,7 @@ export function ApplicantDrawer({ applicantId, projectSlug, onClose, initialSend
               {a.media && !a.media.deletedAt && (
                 <p className="text-[13px] text-muted">
                   {a.retakeUsed && "Retake used. "}
-                  {keepDays !== null ? retentionBadgeText(keepDays) + "." : "Video deletes only if not in a kept stage after 30 days."}
+                  {keepDays !== null ? retentionBadgeText(keepDays) + "." : "Applicant data is deleted 30 days after the last stage change, unless the stage is kept."}
                 </p>
               )}
             </div>

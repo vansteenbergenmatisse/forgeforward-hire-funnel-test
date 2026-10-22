@@ -14,7 +14,7 @@ const query = z.object({
   dryRun: z.enum(["1", "true"]).optional(),
 });
 
-// Vercel Cron: daily 03:00 UTC (vercel.json). Deletes media older than 30 days outside positive stages.
+// Vercel Cron: daily 03:00 UTC (vercel.json). Deletes applicants completely 30 days after their last stage change, outside positive stages.
 export async function GET(req: Request) {
   const denied = rejectUnlessCron(req);
   if (denied) return denied;

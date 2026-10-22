@@ -13,7 +13,7 @@ export function StagePicker({ a, stages, onMove }: Props) {
 
   function choose(stageId: string) {
     if (stageId === a.stageId) return;
-    const days = warnOnMoveOutOfPositive(a, stageId, stages, new Date());
+    const days = warnOnMoveOutOfPositive(a, stageId, stages);
     if (days === null) return onMove(stageId);
     setPending({ stageId, days });
   }
@@ -35,9 +35,9 @@ export function StagePicker({ a, stages, onMove }: Props) {
         <div role="alert" className="mt-2 rounded-lg border border-amber-dot/50 bg-amber-tint p-3 text-sm text-amber">
           <p className="flex items-start gap-2 font-bold">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
-            This video deletes within {pending.days} {pending.days === 1 ? "day" : "days"}.
+            This applicant is deleted {pending.days} {pending.days === 1 ? "day" : "days"} after the move.
           </p>
-          <p className="mt-1 pl-6">Moving to {target.name} means it is no longer in a kept stage.</p>
+          <p className="mt-1 pl-6">{target.name} is not a kept stage. All data and files are removed.</p>
           <div className="mt-2.5 flex gap-2 pl-6">
             <Button size="sm" variant="dark" onClick={() => { onMove(pending.stageId); setPending(null); }}>Move anyway</Button>
             <Button size="sm" variant="secondary" onClick={() => setPending(null)}>Keep in place</Button>

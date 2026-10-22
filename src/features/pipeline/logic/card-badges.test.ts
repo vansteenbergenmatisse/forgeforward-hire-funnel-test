@@ -18,7 +18,7 @@ describe("cardBadges", () => {
   });
   it("warns from day 25 and shows deleted videos", () => {
     const old = mk({ createdAt: "2026-09-24T12:00:00Z" });
-    expect(cardBadges(old, MOCK_STAGES, now).at(-1)?.text).toBe("Video deletes in 3 days");
+    expect(cardBadges(old, MOCK_STAGES, now).at(-1)?.text).toBe("Deletes in 3 days");
     const gone = mk({ media: { kind: "video", src: "", seconds: 1, bytes: 1, deletedAt: "2026-10-01T00:00:00Z" } });
     expect(cardBadges(gone, MOCK_STAGES, now).at(-1)?.text).toBe("Video deleted");
   });

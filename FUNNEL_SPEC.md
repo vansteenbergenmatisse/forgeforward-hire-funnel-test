@@ -204,7 +204,7 @@ Every row above also writes one applicant_events row.
 | 6 | Hired | green | yes | |
 | 7 | Rejected | red | no | |
 
-Positive means videos in that stage never auto-delete (Part F).
+Positive means applicants in that stage are never auto-deleted (Part F).
 
 ## C2. How applicants enter the board
 - Task submitted: entry_task stage.
@@ -226,7 +226,7 @@ Positive means videos in that stage never auto-delete (Part F).
 - Applicants with no completed_at, newest first.
 - Each row shows progress: "Form only" or "Form + video".
 - Matt can move one onto the board with a stage picker. funnel_step stays as it was.
-- Same video retention rule as everyone else.
+- Same retention rule as everyone else (Part F).
 
 ---
 
@@ -258,7 +258,7 @@ Positive means videos in that stage never auto-delete (Part F).
 - Full name and country flag from phone number.
 - Their local time now. Example: "9:42 pm their time".
 - Years of appointment setting. Other projects show their first single-choice answer.
-- Badges: Did task / Audio only / Applied before / Booked {date} / Cancelled / Video deletes in X days (from day 25).
+- Badges: Did task / Audio only / Applied before / Booked {date} / Cancelled / Deletes in X days (from day 25).
 - Score stars when set.
 - Unread dot when a WhatsApp reply came in.
 
@@ -356,17 +356,16 @@ SMS (GoHighLevel)
 
 ---
 
-# Part F: Video retention
+# Part F: Applicant retention (changed 2026-10-22: whole applicant, not only video)
 
 - Runs daily at 03:00 UTC.
-- Targets every applicant where created_at is older than 30 days and the current stage is not positive. "Did not finish" applicants count too (empty stage, so not positive).
-- Deletes video, thumbnail and task file from R2.
-- Sets video_deleted_at. Writes event media_deleted.
-- Text data stays.
-- Card shows "Video deleted" after that.
-- From day 25 the card shows "Video deletes in X days".
-- A card in a positive stage keeps its files. If it moves out later, the next run checks it again.
-- A failed delete logs a system_errors row and retries next night.
+- Targets every applicant whose current stage is not positive and whose last stage change (or creation, or completion, whichever is latest) is more than 30 days ago. "Did not finish" applicants count too (empty stage, so not positive). Rejected counts as not positive.
+- Deletes the applicant completely: row with personal details, answers, events, messages, notes, and the video, thumbnail and task file in R2. Nothing is kept.
+- A card in a positive stage (Interview booked, Interviewed, Trial, Hired, or any stage marked Keep) is never deleted by this rule.
+- A card moved today into Rejected gets 30 more days from the move. A card moved out of Rejected into a positive stage is no longer eligible.
+- From day 25 the card shows "Deletes in X days".
+- One audit row per run with counts only. A failed delete logs a system_errors row and retries next night.
+- The Cal.com webhook is not used, so a booking does not move a card. Move booked applicants to a positive stage by hand, or they are deleted after 30 days.
 
 ---
 

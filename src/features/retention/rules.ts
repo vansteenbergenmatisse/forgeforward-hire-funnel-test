@@ -1,25 +1,43 @@
-/** Video retention rules (FUNNEL_SPEC Part F). Pure, so they are easy to test. */
-export const RETENTION_DAYS = 30;
+/**
+ * Applicant retention rules (FUNNEL_SPEC Part F). Pure, so they are easy to test.
+ *
+ * Applicants that sit in a non-positive stage (New, Did task, Rejected, any custom stage without "Keep videos"),
+ * or that never finished the funnel, are deleted completely 30 days after their last stage change.
+ * Applicants in a positive stage (Interview booked, Interviewed, Trial, Hired, or any stage that keeps videos) are never deleted.
+ */
+export const APPLICANT_RETENTION_DAYS = 30;
+/** Same number under its older name. */
+export const RETENTION_DAYS = APPLICANT_RETENTION_DAYS;
 export const WARNING_FROM_DAY = 25;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type RetentionSubject = {
   createdAt: Date;
+  completedAt?: Date | null;
+  /** Column value, set on every move. */
+  lastStageChangeAt?: Date | null;
+  /** Time of the latest stage_changed event. */
+  lastStageEventAt?: Date | null;
   /** null when the applicant has no stage (Did not finish). */
   stageIsPositive: boolean | null;
-  videoDeletedAt: Date | null;
-  videoKey: string | null;
-  thumbKey: string | null;
-  taskFileKey: string | null;
 };
 
 export function retentionCutoff(now: Date): Date {
-  return new Date(now.getTime() - RETENTION_DAYS * DAY_MS);
+  return new Date(now.getTime() - APPLICANT_RETENTION_DAYS * DAY_MS);
+}
+
+/**
+ * Start of the 30 day clock: the latest stage change, or the time the applicant finished or was created when no change was recorded.
+ * The latest of these wins, so a fresh move into Rejected always gives 30 more days.
+ */
+export function retentionClock(s: Pick<RetentionSubject, "createdAt" | "completedAt" | "lastStageChangeAt" | "lastStageEventAt">): Date {
+  const times = [s.createdAt, s.completedAt, s.lastStageChangeAt, s.lastStageEventAt].filter((d): d is Date => d instanceof Date);
+  return new Date(Math.max(...times.map((d) => d.getTime())));
 }
 
 /** Every R2 key the applicant owns. Empty strings and nulls are skipped. */
-export function mediaKeys(s: Pick<RetentionSubject, "videoKey" | "thumbKey" | "taskFileKey">): string[] {
+export function mediaKeys(s: { videoKey: string | null; thumbKey: string | null; taskFileKey: string | null }): string[] {
   return [s.videoKey, s.thumbKey, s.taskFileKey].filter((k): k is string => Boolean(k));
 }
 
@@ -48,19 +66,18 @@ export function ownFolders(prefix: string, slug: string, applicantId: string): s
 }
 
 /**
- * Older than 30 days, not in a positive stage, files not yet deleted. No stage counts as not positive.
- * Applicants without a stored key are included: their abandoned uploads are swept by folder, then they are marked done.
+ * True when the applicant must be deleted completely: no positive stage (no stage counts as not positive)
+ * and more than 30 days since the last stage change. Exactly 30 days is still kept.
  */
 export function isRetentionEligible(s: RetentionSubject, now: Date): boolean {
-  if (s.videoDeletedAt) return false;
   if (s.stageIsPositive === true) return false;
-  return s.createdAt.getTime() < retentionCutoff(now).getTime();
+  return retentionClock(s).getTime() < retentionCutoff(now).getTime();
 }
 
-/** Whole days left before deletion. null before day 25, after deletion, or for protected cards. */
-export function daysUntilDeletion(s: Pick<RetentionSubject, "createdAt" | "stageIsPositive" | "videoDeletedAt">, now: Date): number | null {
-  if (s.videoDeletedAt || s.stageIsPositive === true) return null;
-  const ageDays = Math.floor((now.getTime() - s.createdAt.getTime()) / DAY_MS);
+/** Whole days left before deletion. null before day 25 or for protected applicants. */
+export function daysUntilDeletion(s: RetentionSubject, now: Date): number | null {
+  if (s.stageIsPositive === true) return null;
+  const ageDays = Math.floor((now.getTime() - retentionClock(s).getTime()) / DAY_MS);
   if (ageDays < WARNING_FROM_DAY) return null;
-  return Math.max(0, RETENTION_DAYS - ageDays);
+  return Math.max(0, APPLICANT_RETENTION_DAYS - ageDays);
 }

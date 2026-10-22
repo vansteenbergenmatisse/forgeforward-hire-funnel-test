@@ -37,7 +37,7 @@ export function MoveWarningDialog({ pending, onConfirm, onCancel }: { pending: P
                 Move {pending.name} out of {pending.fromName}?
               </p>
               <p className="mt-1.5 text-sm text-muted">
-                This video deletes within {pending.days} {pending.days === 1 ? "day" : "days"}. Cards in {pending.fromName} keep their video. Cards in {pending.toName} do not.
+                This applicant is deleted {pending.days} {pending.days === 1 ? "day" : "days"} after the move, with all their data and files. Cards in {pending.fromName} are kept. Cards in {pending.toName} are not.
               </p>
             </div>
           </div>
