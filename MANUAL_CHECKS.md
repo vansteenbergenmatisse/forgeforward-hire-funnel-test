@@ -2,7 +2,7 @@
 
 Things a bot cannot test. Run these on real devices before sharing the funnel link. Tick each box and note the date and device.
 
-Funnel link: https://apply.forgeforward.io/a/appointment-setter (use the Railway URL until the domain is live).
+Funnel link: https://apply.forgeforward.io/a/appointment-setter (use the Vercel URL until the domain is live).
 
 ## Status
 Not run yet. The funnel is front-end only against mock data until the backend is deployed. Automated coverage so far: Playwright with Chrome fake camera and mic (funnel core 16/16, video flow 4 specs). Nothing below has been tested on a real device.

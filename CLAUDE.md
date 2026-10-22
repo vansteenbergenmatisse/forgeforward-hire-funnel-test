@@ -1,15 +1,15 @@
 # Forge Hire
 
-Hiring funnel (/a/[slug]) and private applicant dashboard (/admin) for Forge Forward. First project: Appointment Setter. Spec: FUNNEL_SPEC.md (source of truth). Plan and progress: PLAN.md. Device checks a bot cannot do: MANUAL_CHECKS.md.
+Hiring funnel (/a/[slug]) and private applicant dashboard (/admin) for Forge Forward. First project: Appointment Setter. Spec: FUNNEL_SPEC.md (source of truth). Plan and progress: PLAN.md. Device checks a bot cannot do: MANUAL_CHECKS.md. What the user must do and what is left for Claude: NEXT_STEPS.md (read it first in a new session).
 
 ## Status (2026-10-21)
 - Done: foundation code, full front-end for the funnel (A01 to A16) and the dashboard (D01 to D15) against mock data.
-- Not done: server API routes, DB wiring, R2 uploads, Cal.com/WhatsApp webhooks, cron jobs, Resend/WhatsApp/GHL, Railway deploy. Blocked on keys in `.env.local` (see `.env.example`).
+- Not done: server API routes, DB wiring, R2 uploads, Cal.com/WhatsApp webhooks, cron jobs, Resend/WhatsApp/GHL, Vercel deploy. Blocked on keys in `.env` (see `.env.example`).
 - Details, deviations and what is mock: PLAN.md.
 
 ## Stack (decided)
 - Next.js 16 App Router + strict TypeScript, pnpm, ESLint, Tailwind v4. Read `AGENTS.md` and `node_modules/next/dist/docs/` before using Next APIs (`middleware` is now `proxy`, page props are `PageProps<"/x/[slug]">`, params are Promises).
-- Postgres + Drizzle. Cloudflare R2 for video. Resend (email), WhatsApp Cloud API, GoHighLevel v2 (SMS), Cal.com webhooks. Railway for web, Postgres and cron.
+- Postgres + Drizzle. Cloudflare R2 for video. Resend (email), WhatsApp Cloud API, GoHighLevel v2 (SMS), Cal.com webhooks. Vercel for web and cron (Vercel Cron calls `/api/cron/*` with `CRON_SECRET`). Postgres on Neon via the Vercel Marketplace (pooled `DATABASE_URL`). Nightly `pg_dump` backup runs in a GitHub Actions schedule because a Vercel function has no `pg_dump`.
 - `cacheComponents` is OFF on purpose (conflicts with `force-dynamic` on /api/health).
 
 ## Layout

@@ -235,7 +235,7 @@ Positive means videos in that stage never auto-delete (Part F).
 ## D1. Access
 - No login. Matt opens /admin/k/{ADMIN_KEY} once per device. Sets a 90 day cookie.
 - Without the cookie every admin page returns 404.
-- Changing ADMIN_KEY on Railway logs out every device.
+- Changing ADMIN_KEY on Vercel logs out every device.
 - Every admin page sends noindex. robots.txt blocks /admin.
 
 ## D2. Projects home (/admin)

@@ -4,10 +4,12 @@ Status (2026-10-21): Phase 1 foundation is built. The complete FRONT-END for the
 
 ## Progress
 
+The actionable to-do lists (yours and mine) are in NEXT_STEPS.md.
+
 | Phase | Scope | Status |
 |---|---|---|
-| 1 Foundation | Scaffold, brand tokens, Drizzle schema + first migration, R2 helper, admin key gate, seed, /api/health | Code done. Migration, seed, health and DB/R2 integration tests NOT run: need `DATABASE_URL`, `TEST_DATABASE_URL`, R2 keys |
-| 2 Applicant funnel | A01 to A16 UI, real camera/recorder/upload logic, mock API | Front-end done and verified. Server routes NOT built. Railway deploy NOT done |
+| 1 Foundation | Scaffold, brand tokens, Drizzle schema + first migration, R2 helper, admin key gate, seed, /api/health | Done 2026-10-21: Neon Development migrated and seeded, test branch, R2 bucket + CORS, 3 integration tests pass, /api/health ok. Production and Preview DBs: migrate and seed at deploy |
+| 2 Applicant funnel | A01 to A16 UI, real camera/recorder/upload logic, mock API | Front-end done and verified. Server routes NOT built. Vercel deploy NOT done |
 | 3 Dashboard | Projects home, board + drag/drop, Did not finish, Table + CSV, drawer + video player, send modal, all 7 settings tabs | Front-end done and verified against an in-memory store. Cal.com webhook and server persistence NOT built |
 | 4 Safety nets | Backups, integrity check, restore script, retention cron, banners | Test console UI (simulated) and retention/banner UI done. Cron jobs, restore script NOT built |
 | 5 Messaging | Resend, WhatsApp Cloud API, GHL | Send modal, templates and link mode done (front-end). Provider integrations NOT built |
@@ -103,12 +105,12 @@ Public API: `POST /api/apply/start`, `/upload-url`, `/video/complete`, `/task`, 
 Admin API: `/api/admin/*` (projects, stages, questions, applicants, move, notes, score, messages, templates, unmatched bookings, test console, delete test data)
 Webhooks: `POST /api/webhooks/calcom`, `GET+POST /api/webhooks/whatsapp`
 Health: `GET /api/health`
-Cron (scripts/cron.ts on Railway): retention 03:00 UTC, backup 04:00 UTC, integrity 05:00 UTC
+Cron (Vercel Cron to `/api/cron/*`, bearer `CRON_SECRET`): retention 03:00 UTC, integrity 05:00 UTC. Backup 04:00 UTC via GitHub Actions running `scripts/backup.ts` (pg_dump is not available in Vercel functions).
 
 ## 4. Phases
 
 1. **Foundation**: scaffold (pnpm, strict TS, ESLint), Tailwind tokens, next/font, Drizzle schema + migration, R2 helper, admin key gate, seed Appointment Setter, /api/health. Tests: zod, phone, Cal link builder, template filler, DB + R2 integration, admin gate.
-2. **Applicant funnel A0 to A8**: recorder (mp4/webm, 1.2 Mbps, 720p, thumbnail at 2s, fix-webm-duration), XHR upload with 5 retries, IndexedDB hold, idempotency, resume. Playwright at 390x844 and 1280x800 with fake media devices. MANUAL_CHECKS.md. **Deploy to Railway, send funnel link.**
+2. **Applicant funnel A0 to A8**: recorder (mp4/webm, 1.2 Mbps, 720p, thumbnail at 2s, fix-webm-duration), XHR upload with 5 retries, IndexedDB hold, idempotency, resume. Playwright at 390x844 and 1280x800 with fake media devices. MANUAL_CHECKS.md. **Deploy to Vercel, send funnel link.**
 3. **Dashboard**: projects home, board (dnd), did-not-finish, table + CSV, drawer + player, settings tabs (Tiptap task editor), Cal link builder, Cal.com webhook.
 4. **Safety nets**: nightly backup to R2 (30 days), integrity check, scripts/restore.ts with proven restore, retention, red banners, test console.
 5. **Messaging**: Resend, WhatsApp Cloud API + webhook, GHL v2 (read current docs), link-mode fallback, "Send test to me".
@@ -125,19 +127,19 @@ src/
 ```
 
 ## 6. Decisions already made
-Colors from the HTML (Signal Red #D93A31, Red Deep #B8302A, Red Tint #FCEFED, Deep Charcoal #0E1220, Warm Ivory #FCFBF8). Dashboard and funnel both match the HTML. Railway project and Postgres exist. Domain apply.forgeforward.io. Tests use a separate test DB and `test/` R2 prefix. Git identity for this repo: `vansteenbergenmatisse` / vansteenbergenmatisse@gmail.com. GitHub repo: https://github.com/vansteenbergenmatisse/forgeforward-hire-funnel-test. Brand logo is taken from the prototype and lives in `src/components/brand/logo.tsx`.
+Colors from the HTML (Signal Red #D93A31, Red Deep #B8302A, Red Tint #FCEFED, Deep Charcoal #0E1220, Warm Ivory #FCFBF8). Dashboard and funnel both match the HTML. Hosting moved from Railway to Vercel on 2026-10-21 (user decision). Postgres: Neon via Vercel Marketplace [assumption, any Postgres URL works]. Domain apply.forgeforward.io. Tests use a separate test DB and `test/` R2 prefix. Git identity for this repo: `vansteenbergenmatisse` / vansteenbergenmatisse@gmail.com. GitHub repo: https://github.com/vansteenbergenmatisse/forgeforward-hire-funnel-test. Brand logo is taken from the prototype and lives in `src/components/brand/logo.tsx`.
 
 ## 7. Open questions (default in brackets)
 1. Ivory exact hex? RESOLVED: #FCFBF8 (prototype header comment).
 2. Logo files in /public/brand/? RESOLVED for now: logo extracted from the prototype into a React component. Drop official files in /public/brand/ if they differ.
-3. Test database URL (second Railway DB)? [I ask for TEST_DATABASE_URL in Phase 1]
+3. Test database URL (second Neon branch)? [I ask for TEST_DATABASE_URL in Phase 1]
 4. Cal.com API header for signature? [check current Cal.com docs: `x-cal-signature-256`]
 5. Rate limit storage without Redis? [Postgres table, no Redis]
-6. Cron service on Railway needs pg_dump matching server major version? [install matching postgresql-client in the cron Docker image]
+6. pg_dump must match the server major version. [GitHub Actions job installs the matching postgresql-client]
 7. Which R2 bucket name, and CORS limited to APP_URL and localhost:3000? [R2_BUCKET from you; I set CORS]
 8. Is Meta WhatsApp template approved yet? [no; Phase 5 uses link mode until it is]
 9. Admin key rotation or multiple admins? [single ADMIN_KEY, as spec]
 10. Does "Interviewed" etc. stay global defaults on Duplicate? [yes, copied as is]
 
 ## 8. Env vars (.env.example)
-APP_URL, DATABASE_URL, TEST_DATABASE_URL, ADMIN_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, CALCOM_WEBHOOK_SECRET, RESEND_API_KEY, EMAIL_FROM, EMAIL_REPLY_TO, WA_PHONE_NUMBER_ID, WA_ACCESS_TOKEN, WA_APP_SECRET, WA_VERIFY_TOKEN, GHL_PRIVATE_TOKEN, GHL_LOCATION_ID, TEST_EMAIL, TEST_PHONE
+APP_URL, CRON_SECRET, DATABASE_URL, TEST_DATABASE_URL, ADMIN_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, CALCOM_WEBHOOK_SECRET, RESEND_API_KEY, EMAIL_FROM, EMAIL_REPLY_TO, WA_PHONE_NUMBER_ID, WA_ACCESS_TOKEN, WA_APP_SECRET, WA_VERIFY_TOKEN, GHL_PRIVATE_TOKEN, GHL_LOCATION_ID, TEST_EMAIL, TEST_PHONE
