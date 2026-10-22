@@ -1,4 +1,5 @@
 "use client";
+import { ADMIN_BASE_PATH } from "@/features/admin-access";
 
 import { AdminShell, PageHeader } from "@/components/layout";
 import { GeneralTab } from "./tabs/general-tab";
@@ -41,7 +42,7 @@ export function ProjectSettings({ slug, tab }: { slug: string; tab: SettingsTab 
         crumb={name}
         title="Settings"
         actions={<SavedIndicator savedAt={api.savedAt} error={api.error} />}
-        tabs={SETTINGS_TABS.map((t) => ({ href: `/admin/p/${slug}/settings?tab=${t.id}`, label: t.label, active: t.id === tab }))}
+        tabs={SETTINGS_TABS.map((t) => ({ href: `${ADMIN_BASE_PATH}/p/${slug}/settings?tab=${t.id}`, label: t.label, active: t.id === tab }))}
       />
       <main className="min-w-0 flex-1 px-7 py-6">
         {api.status === "ready" ? (

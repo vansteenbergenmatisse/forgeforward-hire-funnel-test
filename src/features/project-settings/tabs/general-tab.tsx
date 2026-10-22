@@ -1,4 +1,5 @@
 "use client";
+import { ADMIN_BASE_PATH } from "@/features/admin-access";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -159,7 +160,7 @@ function SlugField({ slug }: { slug: string }) {
     setServerError(null);
     setConfirming(false);
     setEditing(false);
-    router.replace(`/admin/p/${draft}/settings?tab=general`);
+    router.replace(`${ADMIN_BASE_PATH}/p/${draft}/settings?tab=general`);
   }
 
   return (

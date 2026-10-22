@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/features/admin-access";
+import { requireAdmin } from "@/features/admin-access/access";
 import { z } from "zod";
 import { callbackOrigin, runCheck } from "@/features/test-console/server";
 import { CHECK_IDS } from "@/features/test-console";

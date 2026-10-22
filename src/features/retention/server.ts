@@ -27,6 +27,8 @@ async function folderKeys(applicantId: string, slug: string, known: string[]): P
 
 export type RunOptions = {
   dryRun?: boolean;
+  /** How many applicants to list in `sample` (default 20). */
+  sampleLimit?: number;
   /** Applicant id to continue after. Work is ordered by id. */
   after?: string;
   budgetMs?: number;
@@ -148,7 +150,7 @@ export async function runRetention(opts: RunOptions = {}): Promise<RetentionResu
         try {
           const keys = [...new Set([...known, ...(await folderKeys(row.id, row.slug, known))])];
           result.files += keys.length;
-          if (result.sample.length < 20) result.sample.push({ applicantId: row.id, files: keys.length });
+          if (result.sample.length < (opts.sampleLimit ?? 20)) result.sample.push({ applicantId: row.id, files: keys.length });
           if (dryRun) return;
           for (const key of keys) await deleteObject(key);
           const out = await deleteApplicant(row.id);

@@ -233,18 +233,18 @@ Positive means applicants in that stage are never auto-deleted (Part F).
 # Part D: Dashboard
 
 ## D1. Access
-- No login. Matt opens /admin/k/{ADMIN_KEY} once per device. Sets a 90 day cookie.
+- No login. Matt opens /adminMatt/k/{ADMIN_KEY} once per device. Sets a 90 day cookie.
 - Without the cookie every admin page returns 404.
 - Changing ADMIN_KEY on Vercel logs out every device.
-- Every admin page sends noindex. robots.txt blocks /admin.
+- Every admin page sends noindex. robots.txt does not list it, so the path is not published. The gate answers 404 and sends noindex.
 
-## D2. Projects home (/admin)
+## D2. Projects home (/adminMatt)
 - One card per project: name, open or closed, applicants this week, count per stage, funnel link with copy button.
 - "New project" offers: Blank (default stages and fixed fields only) or Duplicate (copies questions, video settings, task, stages, templates and thank-you text from a project Matt picks).
 - Red banner at top for an unresolved system error or a missing backup.
 - "Unmatched bookings" box when Cal.com sent a booking with no matching applicant. Matt can link it to an applicant or dismiss it.
 
-## D3. Project board (/admin/p/[slug])
+## D3. Project board (/adminMatt/p/[slug])
 - Columns follow stage order. Each shows a count.
 - Tabs: Board / Did not finish / Table.
 - Table tab: everyone in one sortable list with CSV export.
@@ -275,7 +275,7 @@ Positive means applicants in that stage are never auto-deleted (Part F).
 - Booking info when booked.
 - Delete applicant: Matt types DELETE to confirm. Removes row, events, messages and R2 files.
 
-## D6. Project settings (/admin/p/[slug]/settings)
+## D6. Project settings (/adminMatt/p/[slug]/settings)
 - General: name, slug, open or closed, intro paragraph, Cal.com event link, handoff on or off, reply_days. Changing the slug asks to confirm because shared links break.
 - Form questions: add, edit, reorder by drag, required toggle, archive. Delete always archives.
 - Video: prompt text, prep seconds, max record seconds, retakes allowed.
@@ -284,7 +284,7 @@ Positive means applicants in that stage are never auto-deleted (Part F).
 - Messages: templates per channel (E2).
 - Thank-you page: text with variables.
 
-## D7. Test console (/admin/test)
+## D7. Test console (/adminMatt/test)
 
 "Run full test" runs each check in order against the live stack. Each row shows pass or fail, time taken and error text.
 

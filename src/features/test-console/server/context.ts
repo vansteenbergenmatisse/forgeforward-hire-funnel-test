@@ -1,4 +1,4 @@
-import { ADMIN_COOKIE, cookieValue } from "@/features/admin-access";
+import { ADMIN_COOKIE, cookieValue } from "@/features/admin-access/access";
 import { signTestConsole, TEST_CONSOLE_HEADER } from "@/features/applicant-funnel/server";
 
 export const PROJECT_SLUG = process.env.TEST_PROJECT_SLUG || "appointment-setter";

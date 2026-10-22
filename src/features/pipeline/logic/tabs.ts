@@ -1,3 +1,4 @@
+import { ADMIN_BASE_PATH } from "@/features/admin-access";
 export type PipelineTab = "board" | "dnf" | "table";
 
 /** `?tab=` value to a tab. Anything unknown is the board. */
@@ -13,5 +14,5 @@ export function pipelineHref(slug: string, tab: PipelineTab, applicantId?: strin
   if (applicantId) q.set("a", applicantId);
   if (applicantId && send) q.set("send", send);
   const s = q.toString();
-  return `/admin/p/${slug}${s ? `?${s}` : ""}`;
+  return `${ADMIN_BASE_PATH}/p/${slug}${s ? `?${s}` : ""}`;
 }

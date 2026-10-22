@@ -100,7 +100,7 @@ Full column lists follow the build prompt (uuid ids, created_at and updated_at i
 ## 3. Pages and routes
 
 Public pages: `/a/[slug]`
-Admin pages (cookie gated, 404 otherwise): `/admin/k/[key]`, `/admin`, `/admin/p/[slug]`, `/admin/p/[slug]/settings`, `/admin/test`
+Admin pages (cookie gated, 404 otherwise): `/adminMatt/k/[key]`, `/adminMatt`, `/adminMatt/p/[slug]`, `/adminMatt/p/[slug]/settings`, `/adminMatt/test`
 Public API: `POST /api/apply/start`, `/upload-url`, `/video/complete`, `/task`, `/handoff`, `/log`
 Admin API: `/api/admin/*` (projects, stages, questions, applicants, move, notes, score, messages, templates, unmatched bookings, test console, delete test data)
 Webhooks: `POST /api/webhooks/calcom`, `GET+POST /api/webhooks/whatsapp`

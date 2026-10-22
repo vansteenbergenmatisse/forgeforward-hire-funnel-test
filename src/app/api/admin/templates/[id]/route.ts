@@ -1,6 +1,6 @@
 import { deleteTemplate, readBody, respond, schemas, updateTemplate } from "@/features/projects/server";
 import { recordAudit } from "@/features/admin-access/server";
-import { requireAdmin } from "@/features/admin-access";
+import { requireAdmin } from "@/features/admin-access/access";
 
 export const dynamic = "force-dynamic";
 

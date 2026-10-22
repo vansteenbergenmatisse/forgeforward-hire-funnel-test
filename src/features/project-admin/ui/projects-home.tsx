@@ -1,4 +1,5 @@
 "use client";
+import { ADMIN_BASE_PATH } from "@/features/admin-access";
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,7 +14,7 @@ import { NewProjectDialog } from "./new-project-dialog";
 import { ProjectCard } from "./project-card";
 import { UnmatchedBookings } from "./unmatched-bookings";
 
-/** Projects home (/admin): project cards, new project, unmatched bookings, system banner. */
+/** Projects home (/adminMatt): project cards, new project, unmatched bookings, system banner. */
 export function ProjectsHome() {
   const router = useRouter();
   const { state, actions } = useProjects();
@@ -95,7 +96,7 @@ export function ProjectsHome() {
         onClose={() => setCreating(false)}
         onCreate={async (input) => {
           const record = await actions.createProject(input);
-          router.push(`/admin/p/${record.def.slug}`);
+          router.push(`${ADMIN_BASE_PATH}/p/${record.def.slug}`);
         }}
       />
     </AdminShell>

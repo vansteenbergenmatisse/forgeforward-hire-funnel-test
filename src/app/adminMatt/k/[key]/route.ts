@@ -9,7 +9,8 @@ import {
   isBlocked,
   isValidKey,
   recordFailure,
-} from "@/features/admin-access";
+} from "@/features/admin-access/access";
+import { ADMIN_BASE_PATH } from "@/features/admin-access";
 import { recordSystemError } from "@/platform/logging/system-errors";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ async function logFailure(ip: string) {
   }
 }
 
-export async function GET(req: NextRequest, ctx: RouteContext<"/admin/k/[key]">) {
+export async function GET(req: NextRequest, ctx: RouteContext<"/adminMatt/k/[key]">) {
   const { key } = await ctx.params;
   const ip = clientIp(req.headers.get("x-forwarded-for"));
   if (isBlocked(ip)) return notFound(429);
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/admin/k/[key]">)
     return notFound();
   }
   clearFailures(ip);
-  const res = NextResponse.redirect(new URL("/admin", req.url));
+  const res = NextResponse.redirect(new URL(ADMIN_BASE_PATH, req.url));
   res.cookies.set(ADMIN_COOKIE, cookieValue(adminKey), {
     httpOnly: true,
     // The __Host- name used in production needs Secure. Plain http is only for local development.

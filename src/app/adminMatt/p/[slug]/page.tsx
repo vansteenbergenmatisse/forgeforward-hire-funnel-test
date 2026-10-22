@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Board", robots: { index: false, foll
 const CHANNELS: readonly Channel[] = ["email", "sms", "whatsapp"];
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function ProjectPage({ params, searchParams }: PageProps<"/admin/p/[slug]">) {
+export default async function ProjectPage({ params, searchParams }: PageProps<"/adminMatt/p/[slug]">) {
   const { slug } = await params;
   const sp = await searchParams;
   const send = first(sp.send);

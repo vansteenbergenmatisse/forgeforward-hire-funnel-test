@@ -1,4 +1,5 @@
 "use client";
+import { ADMIN_BASE_PATH } from "@/features/admin-access";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -115,7 +116,7 @@ function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, record
     <AdminShell active={NAV_ACTIVE[tab]} project={{ slug, name: def.name, boardCount: boardCount(applicants), dnfCount: didNotFinishCount(applicants) }}>
       <PageHeader
         crumb={
-          <Link href="/admin" className="hover:text-charcoal">
+          <Link href={ADMIN_BASE_PATH} className="hover:text-charcoal">
             Projects
           </Link>
         }

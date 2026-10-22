@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { ADMIN_COOKIE, isValidCookie } from "@/features/admin-access";
+import { ADMIN_COOKIE, isValidCookie } from "@/features/admin-access/access";
 
 /** Second check behind proxy.ts: the admin cookie must be valid on every admin API call. */
 export function isAdminRequest(req: NextRequest): boolean {

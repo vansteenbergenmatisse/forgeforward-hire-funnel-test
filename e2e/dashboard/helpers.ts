@@ -29,7 +29,7 @@ export async function closeTestDb() {
 
 /** Sets the admin cookie for this browser context. */
 export async function signIn(page: Page) {
-  await page.goto(`/admin/k/${ADMIN_KEY}`);
+  await page.goto(`/adminMatt/k/${ADMIN_KEY}`);
 }
 
 type Stage = { id: string; name: string; role: string | null };

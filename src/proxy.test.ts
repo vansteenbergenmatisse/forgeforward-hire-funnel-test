@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
-import { ADMIN_COOKIE, cookieValue } from "@/features/admin-access";
+import { ADMIN_COOKIE, cookieValue } from "@/features/admin-access/access";
 import { isCrossSiteMutation, proxy } from "./proxy";
 
 const KEY = "k".repeat(48);
@@ -34,11 +34,11 @@ describe("isCrossSiteMutation", () => {
 describe("proxy", () => {
   it("answers 404 without a cookie", () => {
     process.env.ADMIN_KEY = KEY;
-    expect(proxy(req("/admin")).status).toBe(404);
+    expect(proxy(req("/adminMatt")).status).toBe(404);
   });
   it("lets a valid cookie through with noindex", () => {
     process.env.ADMIN_KEY = KEY;
-    const res = proxy(req("/admin", { cookie: cookieValue(KEY) }));
+    const res = proxy(req("/adminMatt", { cookie: cookieValue(KEY) }));
     expect(res.status).toBe(200);
     expect(res.headers.get("x-robots-tag")).toContain("noindex");
   });
@@ -52,9 +52,9 @@ describe("proxy", () => {
   it("fails closed when the admin key is short or missing", () => {
     const short = "s".repeat(31);
     process.env.ADMIN_KEY = short;
-    expect(proxy(req("/admin", { cookie: cookieValue(short) })).status).toBe(404);
-    expect(proxy(req("/admin/k/anything")).status).toBe(404);
+    expect(proxy(req("/adminMatt", { cookie: cookieValue(short) })).status).toBe(404);
+    expect(proxy(req("/adminMatt/k/anything")).status).toBe(404);
     delete process.env.ADMIN_KEY;
-    expect(proxy(req("/admin")).status).toBe(404);
+    expect(proxy(req("/adminMatt")).status).toBe(404);
   });
 });

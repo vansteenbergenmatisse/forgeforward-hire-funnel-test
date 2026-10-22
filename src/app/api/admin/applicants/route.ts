@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/features/admin-access";
+import { requireAdmin } from "@/features/admin-access/access";
 import { z } from "zod";
 import { PRIVATE_NO_STORE, listApplicantsPage } from "@/features/applicants/server";
 

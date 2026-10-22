@@ -1,4 +1,5 @@
 "use client";
+import { ADMIN_BASE_PATH } from "@/features/admin-access";
 
 import { useMemo } from "react";
 import Link from "next/link";
@@ -59,7 +60,7 @@ export function ProjectCard({ project }: { project: ProjectRecord }) {
           <CopyLinkButton text={`https://${funnelUrl}`} />
         </div>
         <Link
-          href={`/admin/p/${slug}`}
+          href={`${ADMIN_BASE_PATH}/p/${slug}`}
           className="inline-flex h-10 shrink-0 items-center gap-[7px] whitespace-nowrap rounded-[9px] bg-charcoal px-3.5 text-sm font-bold text-white hover:bg-charcoal-2"
         >
           <LayoutGrid className="size-4" aria-hidden />

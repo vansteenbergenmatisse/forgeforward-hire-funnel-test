@@ -36,7 +36,7 @@ Not run yet. The first Vercel deploy is live; run these on real devices now. Aut
 - [ ] Dashboard in Chrome and Safari: drag a card, open a video, play at 1x, 1.5x and 2x
 
 ## Production only (after backend deploy)
-- [ ] Test console at /admin/test: every check green, then "Delete test data" shows 0 left
+- [ ] Test console at /adminMatt/test: every check green, then "Delete test data" shows 0 left
 - [ ] A real Cal.com booking moves the card to Interview booked
 - [ ] Send a real email, WhatsApp and SMS to yourself with "Send test to me"
 - [ ] Last night's backup exists in R2 and the restore test passed

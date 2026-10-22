@@ -1,3 +1,4 @@
+import { ADMIN_BASE_PATH } from "@/features/admin-access";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { FlaskConical, LayoutGrid, LogOut, Settings, ShieldCheck, Table2, UserX, Columns3 } from "lucide-react";
@@ -32,7 +33,7 @@ function NavLink({ href, active, icon, children, count }: { href: string; active
 
 /** Charcoal sidebar + ivory content area. Dense, red only for main actions and alerts. */
 export function AdminShell({ active, project, children }: ShellProps) {
-  const base = project ? `/admin/p/${project.slug}` : "";
+  const base = project ? `${ADMIN_BASE_PATH}/p/${project.slug}` : "";
   return (
     <div className="flex min-h-dvh bg-ivory">
       <nav aria-label="Admin" className="sticky top-0 hidden h-dvh w-[232px] shrink-0 flex-col bg-charcoal px-3.5 py-5 text-white lg:flex">
@@ -41,7 +42,7 @@ export function AdminShell({ active, project, children }: ShellProps) {
           <p className="mt-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-side-muted">Hire</p>
         </div>
         <div className="flex flex-col gap-0.5">
-          <NavLink href="/admin" active={active === "projects"} icon={<LayoutGrid />}>
+          <NavLink href={ADMIN_BASE_PATH} active={active === "projects"} icon={<LayoutGrid />}>
             Projects
           </NavLink>
           {project && (
@@ -62,7 +63,7 @@ export function AdminShell({ active, project, children }: ShellProps) {
             </>
           )}
           <div className="h-4" />
-          <NavLink href="/admin/test" active={active === "test"} icon={<FlaskConical />}>
+          <NavLink href={`${ADMIN_BASE_PATH}/test`} active={active === "test"} icon={<FlaskConical />}>
             Test console
           </NavLink>
         </div>
@@ -71,7 +72,7 @@ export function AdminShell({ active, project, children }: ShellProps) {
             <ShieldCheck className="mt-px size-3.5 shrink-0" aria-hidden />
             This device stays signed in for 30 days.
           </p>
-          <form action="/admin/logout" method="post" className="mt-2">
+          <form action={`${ADMIN_BASE_PATH}/logout`} method="post" className="mt-2">
             <button type="submit" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 font-bold text-side-text hover:bg-white/5 hover:text-white">
               <LogOut className="size-3.5" aria-hidden />
               Sign out
@@ -89,9 +90,9 @@ export function AdminShell({ active, project, children }: ShellProps) {
 
 /** Below 1024px the sidebar becomes a top bar. Matt works on a laptop, so this only needs to be usable. */
 function MobileBar({ active, project }: Omit<ShellProps, "children">) {
-  const base = project ? `/admin/p/${project.slug}` : "";
+  const base = project ? `${ADMIN_BASE_PATH}/p/${project.slug}` : "";
   const items: { key: AdminNavKey; href: string; label: string }[] = [
-    { key: "projects", href: "/admin", label: "Projects" },
+    { key: "projects", href: ADMIN_BASE_PATH, label: "Projects" },
     ...(project
       ? [
           { key: "board" as const, href: base, label: "Board" },
@@ -100,7 +101,7 @@ function MobileBar({ active, project }: Omit<ShellProps, "children">) {
           { key: "settings" as const, href: `${base}/settings`, label: "Settings" },
         ]
       : []),
-    { key: "test", href: "/admin/test", label: "Test console" },
+    { key: "test", href: `${ADMIN_BASE_PATH}/test`, label: "Test console" },
   ];
   return (
     <nav aria-label="Admin" className="flex items-center gap-1 overflow-x-auto bg-charcoal px-3 py-2.5 lg:hidden">

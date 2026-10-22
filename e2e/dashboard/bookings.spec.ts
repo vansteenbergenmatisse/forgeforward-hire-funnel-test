@@ -59,7 +59,7 @@ test.describe("Cal.com webhook", () => {
 
     // The board shows the card in the booking stage after a reload.
     await signIn(page);
-    await page.goto(`/admin/p/${project.slug}`);
+    await page.goto(`/adminMatt/p/${project.slug}`);
     await expect(page.locator(`[data-card-id="${a.id}"]`)).toHaveAttribute("aria-label", new RegExp(`, ${onBooking().name}$`));
   });
 });
@@ -77,7 +77,7 @@ test.describe("unmatched bookings", () => {
     }
 
     await signIn(page);
-    await page.goto("/admin");
+    await page.goto("/adminMatt");
     const box = page.getByRole("region", { name: "Unmatched bookings" });
     await expect(box.getByText(linkEmail)).toBeVisible();
     await expect(box.getByText(dismissEmail)).toBeVisible();

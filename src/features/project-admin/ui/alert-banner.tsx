@@ -1,4 +1,5 @@
 "use client";
+import { ADMIN_BASE_PATH } from "@/features/admin-access";
 
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
@@ -14,7 +15,7 @@ export function AlertBanner({ alert, onResolve }: { alert: SystemAlert; onResolv
         <b>{alert.title}</b> {alert.detail}
       </span>
       <span className="ml-auto flex items-center gap-2">
-        <Link href="/admin/test" className="inline-flex h-8 items-center rounded-lg bg-white px-3 text-[13px] font-extrabold text-signal-deep hover:bg-ivory">
+        <Link href={`${ADMIN_BASE_PATH}/test`} className="inline-flex h-8 items-center rounded-lg bg-white px-3 text-[13px] font-extrabold text-signal-deep hover:bg-ivory">
           Open test console
         </Link>
         {onResolve ? (

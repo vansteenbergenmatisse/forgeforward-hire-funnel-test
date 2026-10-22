@@ -1,6 +1,6 @@
 # Forge Hire
 
-Hiring funnel (/a/[slug]) and private applicant dashboard (/admin) for Forge Forward. First project: Appointment Setter. Spec: FUNNEL_SPEC.md (source of truth). Plan and progress: PLAN.md. Device checks a bot cannot do: MANUAL_CHECKS.md. What the user must do and what is left for Claude: NEXT_STEPS.md (read it first in a new session).
+Hiring funnel (/a/[slug]) and private applicant dashboard (/adminMatt) for Forge Forward. First project: Appointment Setter. Spec: FUNNEL_SPEC.md (source of truth). Plan and progress: PLAN.md. Device checks a bot cannot do: MANUAL_CHECKS.md. What the user must do and what is left for Claude: NEXT_STEPS.md (read it first in a new session).
 
 ## Status (2026-10-21)
 - Done: front-end (funnel A01 to A16, dashboard D01 to D15), and the backend: funnel API, admin API, Cal.com webhook, cron/backup/restore, test console runner, messaging provider code. Neon, R2 and Vercel are set up.
@@ -25,7 +25,7 @@ Hiring funnel (/a/[slug]) and private applicant dashboard (/admin) for Forge For
 - `components/{brand,ui,forms,layout,funnel}`: shared UI. `platform/{db,r2}`: server only, never import from client components.
 
 ## Commands
-- `pnpm dev` (set `ADMIN_KEY` to a 48+ char string; visit `/admin/k/<key>` once per browser for the admin cookie).
+- `pnpm dev` (set `ADMIN_KEY` to a 48+ char string; visit `/adminMatt/k/<key>` once per browser for the admin cookie).
 - `pnpm exec tsc --noEmit --incremental false`, `pnpm lint`, `pnpm test` (vitest), `pnpm build`.
 - Playwright: start a dev server, then `pnpm exec playwright test` (funnel, baseURL `E2E_BASE_URL` or http://localhost:3101) and `pnpm exec playwright test -c playwright.video.config.ts` (video flow, http://localhost:3104). Chromium runs with fake camera and mic flags.
 - Dashboard Playwright: `pnpm exec tsx scripts/e2e-dashboard-server.ts` (test DB, `test/` prefix, providers off), then `pnpm exec playwright test -c playwright.dashboard.config.ts`. `pnpm exec playwright test` skips the dashboard and video specs.

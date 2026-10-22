@@ -33,11 +33,11 @@ const nextConfig: NextConfig = {
     return [
       // Pages with tokens in the URL or private data never send a Referer.
       {
-        source: "/:path((?:admin|api/admin|a/handoff)(?:/.*)?)",
+        source: "/:path((?:adminMatt|api/admin|a/handoff)(?:/.*)?)",
         headers: [...baseHeaders, { key: "Referrer-Policy", value: "no-referrer" }],
       },
       {
-        source: "/:path((?!admin(?:/|$)|api/admin(?:/|$)|a/handoff(?:/|$)).*)",
+        source: "/:path((?!adminMatt(?:/|$)|api/admin(?:/|$)|a/handoff(?:/|$)).*)",
         headers: [...baseHeaders, { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }],
       },
     ];

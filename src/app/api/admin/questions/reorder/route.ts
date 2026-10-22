@@ -1,5 +1,5 @@
 import { recordAudit } from "@/features/admin-access/server";
-import { requireAdmin } from "@/features/admin-access";
+import { requireAdmin } from "@/features/admin-access/access";
 import { readBody, reorderQuestions, respond, schemas } from "@/features/projects/server";
 
 export const dynamic = "force-dynamic";

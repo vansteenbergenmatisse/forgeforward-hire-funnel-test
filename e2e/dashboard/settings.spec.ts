@@ -30,7 +30,7 @@ test("stage CRUD: add, rename, delete with a target moves the cards", async ({ p
   if (!doomed || !target) throw new Error("expected a role-less stage and an entry_new stage");
   const a = await insertApplicant(project, doomed.id, "stagedel");
 
-  await page.goto(`/admin/p/${project.slug}/settings?tab=stages`);
+  await page.goto(`/adminMatt/p/${project.slug}/settings?tab=stages`);
 
   // Add and rename.
   await page.getByRole("button", { name: "Add stage" }).click();
@@ -64,7 +64,7 @@ test("stage CRUD: add, rename, delete with a target moves the cards", async ({ p
 test("archiving a question keeps the label on old answers", async ({ page }) => {
   await signIn(page);
   const label = `E2E favourite colour ${Date.now()}`;
-  await page.goto(`/admin/p/${project.slug}/settings?tab=questions`);
+  await page.goto(`/adminMatt/p/${project.slug}/settings?tab=questions`);
 
   await page.getByRole("button", { name: "Add question" }).click();
   await page.getByLabel("Question", { exact: true }).fill(label);
@@ -85,7 +85,7 @@ test("archiving a question keeps the label on old answers", async ({ page }) => 
   expect(after.archived).toBe(true);
 
   // The drawer still shows the answer under its old label.
-  await page.goto(`/admin/p/${project.slug}?a=${a.id}`);
+  await page.goto(`/adminMatt/p/${project.slug}?a=${a.id}`);
   const drawer = page.getByRole("dialog");
   await expect(drawer.getByText(label)).toBeVisible();
   await expect(drawer.getByText("blue")).toBeVisible();
@@ -95,7 +95,7 @@ test("a task saved with Tiptap shows in the funnel", async ({ page, browser }) =
   await signIn(page);
   const title = `E2E task ${Date.now()}`;
   const text = `Write your first text ${Date.now()}`;
-  await page.goto(`/admin/p/${project.slug}/settings?tab=task`);
+  await page.goto(`/adminMatt/p/${project.slug}/settings?tab=task`);
   const toggle = page.getByRole("switch", { name: /Task is/ });
   if (!(await toggle.isChecked())) await toggle.check({ force: true });
   const titleInput = page.getByLabel("Title", { exact: true });

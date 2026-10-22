@@ -22,7 +22,7 @@ test("the drawer moves a card by DB stage id and a sent message survives a reloa
   await signIn(page);
   const a = await insertApplicant(project, project.stages[0].id, "drawer");
   const target = project.stages[1];
-  await page.goto(`/admin/p/${project.slug}?a=${a.id}`);
+  await page.goto(`/adminMatt/p/${project.slug}?a=${a.id}`);
 
   const drawer = page.getByRole("dialog");
   const picker = drawer.getByRole("combobox").first();
@@ -38,7 +38,7 @@ test("the drawer moves a card by DB stage id and a sent message survives a reloa
   await page.getByRole("button", { name: "Send SMS" }).click();
   await expect.poll(async () => (await testDb().select().from(schema.messages).where(eq(schema.messages.applicantId, a.id))).map((m) => `${m.mode}:${m.status}:${m.body}`)).toEqual([`link:opened_link:${text}`]);
 
-  await page.goto(`/admin/p/${project.slug}?a=${a.id}`);
+  await page.goto(`/adminMatt/p/${project.slug}?a=${a.id}`);
   await expect(page.getByRole("dialog").getByText(text)).toBeVisible();
   await expect(page.getByRole("dialog").getByRole("combobox").first()).toHaveValue(target.id);
 });

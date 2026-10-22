@@ -28,14 +28,14 @@ test("no 'not found' flash while projects load", async ({ page }) => {
       if (document.body?.innerText.toLowerCase().includes("not found")) void (window as unknown as { report: (t: string) => void }).report("not found");
     }).observe(document, { childList: true, subtree: true, characterData: true });
   });
-  await page.goto(`/admin/p/${project.slug}`);
+  await page.goto(`/adminMatt/p/${project.slug}`);
   await expect(page.getByRole("group", { name: "Pipeline board" })).toBeVisible();
   expect(seen).toEqual([]);
 });
 
 test("a dragged card keeps its stage after reload (DB uuid stage ids)", async ({ page }) => {
   await signIn(page);
-  await page.goto(`/admin/p/${project.slug}`);
+  await page.goto(`/adminMatt/p/${project.slug}`);
   const card = page.locator(`[data-card-id="${applicantId}"]`);
   await expect(card).toBeVisible();
   const target = project.stages[1];

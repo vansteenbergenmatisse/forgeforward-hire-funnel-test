@@ -1,5 +1,5 @@
 import { getProject, respond, schemas } from "@/features/projects/server";
-import { requireAdmin } from "@/features/admin-access";
+import { requireAdmin } from "@/features/admin-access/access";
 
 export const dynamic = "force-dynamic";
 

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/features/admin-access";
+import { requireAdmin } from "@/features/admin-access/access";
 import { recordAudit } from "@/features/admin-access/server";
 import { z } from "zod";
 import { PRIVATE_NO_STORE, UUID_RE, getApplicant, linkUnmatchedBooking } from "@/features/applicants/server";

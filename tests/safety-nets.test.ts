@@ -179,14 +179,14 @@ describe.skipIf(!haveDb || !haveR2)("retention, integrity and banners against th
     await runRetention({});
     expect(await headObject(withPrefix(`safety/${run}/old-positive-video.webm`))).not.toBeNull();
     // 31 days later the same applicant is eligible.
-    const r = await runRetention({ dryRun: true, now: new Date(Date.now() + 31 * day) });
+    const r = await runRetention({ dryRun: true, sampleLimit: 10_000, now: new Date(Date.now() + 31 * day) });
     expect(r.sample.map((s) => s.applicantId)).toContain(ids["old-positive"]);
   });
 
   it("an applicant moved from Rejected into a positive stage is no longer eligible", async () => {
     const { runRetention } = await import("@/features/retention/server");
     await db().update(tables.applicants).set({ stageId: stagePositive }).where(eq(tables.applicants.id, ids["rejected-29"]));
-    const r = await runRetention({ dryRun: true, now: new Date(Date.now() + 90 * day) });
+    const r = await runRetention({ dryRun: true, sampleLimit: 10_000, now: new Date(Date.now() + 90 * day) });
     expect(r.sample.map((s) => s.applicantId)).not.toContain(ids["rejected-29"]);
   });
 

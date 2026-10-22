@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/features/admin-access";
+import { requireAdmin } from "@/features/admin-access/access";
 import { PRIVATE_NO_STORE, listUnmatchedBookings } from "@/features/applicants/server";
 
 export const dynamic = "force-dynamic";

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/features/admin-access";
+import { requireAdmin } from "@/features/admin-access/access";
 import { channelModes, countTestData, testTarget } from "@/features/test-console/server";
 
 export const dynamic = "force-dynamic";
