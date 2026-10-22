@@ -5,8 +5,8 @@ Hiring funnel (/a/[slug]) and private applicant dashboard (/admin) for Forge For
 ## Status (2026-10-21)
 - Done: front-end (funnel A01 to A16, dashboard D01 to D15), and the backend: funnel API, admin API, Cal.com webhook, cron/backup/restore, test console runner, messaging provider code. Neon, R2 and Vercel are set up.
 - Switches: `NEXT_PUBLIC_FUNNEL_API=http` and `NEXT_PUBLIC_ADMIN_API=http` use the real routes (default is mock). `NEXT_PUBLIC_TEST_CONSOLE=mock` keeps the simulated console. `NEXT_PUBLIC_SEND_MODE=api` once messaging keys exist.
-- Deployed: https://forge-hire.vercel.app (Vercel auto-deploys on push to main; Production env has both http switches). Dashboard and funnel run on the database.
-- Not done: separate production database (Vercel `DATABASE_URL` still points at the Development Neon branch), provider keys (Resend, WhatsApp, GHL, Cal.com secret). See NEXT_STEPS.md.
+- Deployed: https://forge-hire.vercel.app (Vercel auto-deploys on push to main; Production env has both http switches). Dashboard and funnel run on the database. Production uses its own Neon branch `production`; Development and Preview use the Development branch.
+- Not done: provider keys (Resend, WhatsApp, GHL, Cal.com secret). See NEXT_STEPS.md.
 - Details, deviations and what is mock: PLAN.md.
 
 ## Stack (decided)
