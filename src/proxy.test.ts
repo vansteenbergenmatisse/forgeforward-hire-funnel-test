@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { ADMIN_COOKIE, cookieValue } from "@/features/admin-access/access";
-import { isCrossSiteMutation, proxy } from "./proxy";
+import { canonicalAdminPath, isCrossSiteMutation, proxy } from "./proxy";
 
 const KEY = "k".repeat(48);
 const prev = process.env.ADMIN_KEY;
@@ -56,5 +56,29 @@ describe("proxy", () => {
     expect(proxy(req("/adminMatt/k/anything")).status).toBe(404);
     delete process.env.ADMIN_KEY;
     expect(proxy(req("/adminMatt")).status).toBe(404);
+  });
+});
+
+
+describe("admin path in any letter case", () => {
+  it("maps other cases to the canonical path and leaves it alone otherwise", () => {
+    expect(canonicalAdminPath("/adminmatt")).toBe("/adminMatt");
+    expect(canonicalAdminPath("/ADMINMATT/p/x")).toBe("/adminMatt/p/x");
+    expect(canonicalAdminPath("/adminMatt")).toBeNull();
+    expect(canonicalAdminPath("/adminMatt/k/abc")).toBeNull();
+    expect(canonicalAdminPath("/adminmattx")).toBeNull();
+    expect(canonicalAdminPath("/admin")).toBeNull();
+  });
+
+  it("answers 404 for every spelling without the cookie, and serves the page with it", () => {
+    process.env.ADMIN_KEY = KEY;
+    for (const path of ["/adminMatt", "/adminmatt", "/ADMINMATT/p/a"]) {
+      expect(proxy(new NextRequest(`https://x.test${path}`)).status).toBe(404);
+    }
+    const cookie = `${ADMIN_COOKIE}=${cookieValue(KEY)}`;
+    const res = proxy(new NextRequest("https://x.test/adminmatt", { headers: { cookie } }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-middleware-rewrite")).toContain("/adminMatt");
+    expect(proxy(new NextRequest("https://x.test/adminmatt/k/abc")).headers.get("x-middleware-rewrite")).toContain("/adminMatt/k/abc");
   });
 });
