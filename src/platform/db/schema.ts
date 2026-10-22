@@ -106,7 +106,8 @@ export const applicants = pgTable(
     id: id(),
     projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
     stageId: uuid("stage_id").references(() => stages.id, { onDelete: "set null" }),
-    resumeToken: text("resume_token").notNull().unique(),
+    /** SHA-256 of the resume token. The plaintext token lives only in the applicant's browser. */
+    resumeTokenHash: text("resume_token_hash").notNull(),
     isTest: boolean("is_test").notNull().default(false),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
@@ -153,6 +154,7 @@ export const applicants = pgTable(
     index("applicants_project_idx").on(t.projectId),
     index("applicants_stage_idx").on(t.stageId),
     index("applicants_email_idx").on(t.projectId, t.email),
+    uniqueIndex("applicants_resume_token_hash_uq").on(t.resumeTokenHash),
     index("applicants_handoff_idx").on(t.handoffToken),
     // Trigram indexes serve the admin search (ILIKE '%q%'). Needs the pg_trgm extension (created in migration 0002).
     index("applicants_first_name_trgm_idx").using("gin", sql`${t.firstName} gin_trgm_ops`),

@@ -36,11 +36,24 @@ export function applicantFolders(applicantId: string, keys: string[]): string[] 
   return [...folders];
 }
 
-/** Older than 30 days, not in a positive stage, files not yet deleted. No stage counts as not positive. */
+/**
+ * The three folders an applicant can upload into (`<prefix>videos|thumbs|tasks/<slug>/<applicantId>/`).
+ * Used for applicants with no stored keys, whose abandoned uploads would otherwise stay in R2.
+ * Returns nothing when the id or slug could widen the prefix beyond that one applicant.
+ */
+export function ownFolders(prefix: string, slug: string, applicantId: string): string[] {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(applicantId)) return [];
+  if (!/^[\w-]+$/.test(slug)) return [];
+  return (["videos", "thumbs", "tasks"] as const).map((kind) => `${prefix}${kind}/${slug}/${applicantId}/`);
+}
+
+/**
+ * Older than 30 days, not in a positive stage, files not yet deleted. No stage counts as not positive.
+ * Applicants without a stored key are included: their abandoned uploads are swept by folder, then they are marked done.
+ */
 export function isRetentionEligible(s: RetentionSubject, now: Date): boolean {
   if (s.videoDeletedAt) return false;
   if (s.stageIsPositive === true) return false;
-  if (mediaKeys(s).length === 0) return false;
   return s.createdAt.getTime() < retentionCutoff(now).getTime();
 }
 

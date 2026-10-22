@@ -4,6 +4,7 @@ export {
   WARNING_FROM_DAY,
   retentionCutoff,
   mediaKeys,
+  ownFolders,
   isRetentionEligible,
   daysUntilDeletion,
   type RetentionSubject,

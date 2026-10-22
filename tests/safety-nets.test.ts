@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
 import { closeDb, db, tables } from "@/platform/db";
+import { hashToken } from "@/shared/token-hash";
 import { deleteObject, headObject, putObject, withPrefix } from "@/platform/r2";
 
 const haveDb = Boolean(process.env.TEST_DATABASE_URL);
@@ -28,13 +29,32 @@ async function applicant(name: string, opts: { age: number; stage: string | null
   const [row] = await db()
     .insert(tables.applicants)
     .values({
-      projectId, stageId: opts.stage, resumeToken: `${run}-${name}`, isTest: true,
+      projectId, stageId: opts.stage, resumeTokenHash: hashToken(`${run}-${name}`), isTest: true,
       firstName: "S", lastName: name, email: `${run}-${name}@forge-hire.test`, phoneE164: "+31612345678",
       timezone: "UTC", consentAt: new Date(), consentText: "x", funnelStep: "completed",
       videoKey: v, thumbKey: t, taskFileKey: f, createdAt: ago(opts.age),
     })
     .returning({ id: tables.applicants.id });
   ids[name] = row.id;
+}
+
+/** An applicant who never completed a video: no keys on the row, but stray uploads under their own R2 folders. */
+const strayKeys: Record<string, string[]> = {};
+async function strayApplicant(name: string, opts: { age: number; stage: string | null }) {
+  const id = crypto.randomUUID();
+  const stray = [
+    withPrefix(`videos/${run}/${id}/1700000000000.webm`),
+    withPrefix(`thumbs/${run}/${id}/1700000000000.jpg`),
+    withPrefix(`tasks/${run}/${id}/ab12cd34-cv.pdf`),
+  ];
+  for (const k of stray) { await putObject(k, "x", "application/octet-stream"); keys.push(k); }
+  strayKeys[name] = stray;
+  await db().insert(tables.applicants).values({
+    id, projectId, stageId: opts.stage, resumeTokenHash: hashToken(`${run}-${name}`), isTest: true,
+    firstName: "S", lastName: name, email: `${run}-${name}@forge-hire.test`, phoneE164: "+31612345678",
+    timezone: "UTC", consentAt: new Date(), consentText: "x", funnelStep: "form_done", createdAt: ago(opts.age),
+  });
+  ids[name] = id;
 }
 
 describe.skipIf(!haveDb || !haveR2)("retention, integrity and banners against the test database", () => {
@@ -54,6 +74,14 @@ describe.skipIf(!haveDb || !haveR2)("retention, integrity and banners against th
     await applicant("old-positive", { age: 40, stage: stagePositive });
     await applicant("old-dnf", { age: 40, stage: null });
     await applicant("young", { age: 5, stage: stageNormal });
+    await strayApplicant("old-novideo", { age: 40, stage: null });
+    await strayApplicant("old-novideo-positive", { age: 40, stage: stagePositive });
+    await strayApplicant("young-novideo", { age: 5, stage: null });
+    // A neighbour's file in the same project: it must never be touched by someone else's sweep.
+    const neighbour = withPrefix(`videos/${run}/${crypto.randomUUID()}/1.webm`);
+    await putObject(neighbour, "x", "application/octet-stream");
+    keys.push(neighbour);
+    strayKeys.neighbour = [neighbour];
   });
 
   afterAll(async () => {
@@ -71,6 +99,12 @@ describe.skipIf(!haveDb || !haveR2)("retention, integrity and banners against th
     expect(await headObject(withPrefix(`safety/${run}/old-normal-video.webm`))).not.toBeNull();
     const [row] = await db().select().from(tables.applicants).where(eq(tables.applicants.id, ids["old-normal"]));
     expect(row.videoDeletedAt).toBeNull();
+    // Applicants without a video are counted too, and nothing is deleted or marked in a dry run.
+    expect(r.sample.map((s) => s.applicantId)).toContain(ids["old-novideo"]);
+    expect(r.sample.find((s) => s.applicantId === ids["old-novideo"])?.files).toBe(3);
+    for (const k of strayKeys["old-novideo"]) expect(await headObject(k)).not.toBeNull();
+    const [stray] = await db().select().from(tables.applicants).where(eq(tables.applicants.id, ids["old-novideo"]));
+    expect(stray.videoDeletedAt).toBeNull();
   });
 
   it("deletes old files outside positive stages and keeps the rest", async () => {
@@ -93,6 +127,15 @@ describe.skipIf(!haveDb || !haveR2)("retention, integrity and banners against th
     expect(by["old-positive"].videoDeletedAt).toBeNull();
     expect(by["young"].videoDeletedAt).toBeNull();
     expect(by["old-normal"].firstName).toBe("S"); // text data stays
+
+    // B012: stray uploads of applicants who never completed a video are swept from their own folders only.
+    for (const k of strayKeys["old-novideo"]) expect(await headObject(k)).toBeNull();
+    expect(by["old-novideo"].videoDeletedAt).not.toBeNull();
+    for (const k of strayKeys["old-novideo-positive"]) expect(await headObject(k)).not.toBeNull();
+    for (const k of strayKeys["young-novideo"]) expect(await headObject(k)).not.toBeNull();
+    for (const k of strayKeys.neighbour) expect(await headObject(k)).not.toBeNull();
+    expect(by["old-novideo-positive"].videoDeletedAt).toBeNull();
+    expect(by["young-novideo"].videoDeletedAt).toBeNull();
 
     const events = await db().select().from(tables.applicantEvents).where(and(eq(tables.applicantEvents.applicantId, ids["old-normal"]), eq(tables.applicantEvents.type, "media_deleted")));
     expect(events).toHaveLength(1);

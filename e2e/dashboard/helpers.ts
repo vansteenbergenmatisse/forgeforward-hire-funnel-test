@@ -5,6 +5,7 @@ import { and, eq, inArray, like } from "drizzle-orm";
 import postgres from "postgres";
 import { expect, type Page } from "@playwright/test";
 import * as schema from "../../src/platform/db/schema";
+import { hashToken } from "../../src/shared/token-hash";
 
 config({ path: [".env.local", ".env.development.local", ".env"], quiet: true });
 
@@ -52,7 +53,7 @@ export async function insertApplicant(project: E2eProject, stageId: string | nul
     .values({
       projectId: project.id,
       stageId,
-      resumeToken: randomBytes(16).toString("hex"),
+      resumeTokenHash: hashToken(randomBytes(16).toString("hex")),
       firstName: `E2e${tag}`,
       lastName: "Person",
       email,

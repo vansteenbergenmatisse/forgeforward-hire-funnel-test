@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq, inArray } from "drizzle-orm";
 import { closeDb, db, tables } from "@/platform/db";
 import { putObject, deleteObject } from "@/platform/r2";
+import { hashToken } from "@/shared/token-hash";
 
 const haveDb = Boolean(process.env.TEST_DATABASE_URL);
 const haveR2 = Boolean(process.env.R2_BUCKET && process.env.R2_ACCESS_KEY_ID);
@@ -124,7 +125,12 @@ describe.skipIf(!haveDb)("funnel api", () => {
     it("runs the whole flow", async () => {
       const email = `flow-${suffix}@example.com`;
       const s = (await api.startApplication(startReq(ipOf(20), {}), payload({ email }), `key-${crypto.randomUUID()}`)) as { applicant_id: string; resume_token: string };
-      const token = s.resume_token;
+      let token = s.resume_token;
+
+      // Only the SHA-256 hash is stored: no column holds the plaintext token.
+      const [stored] = await db().select().from(tables.applicants).where(eq(tables.applicants.id, s.applicant_id));
+      expect(stored.resumeTokenHash).toBe(hashToken(token));
+      expect(Object.values(stored).some((v) => v === token)).toBe(false);
 
       await expect(api.createUploadUrls({ resumeToken: "bad", kind: "video", mime: "video/webm", withThumb: false, bytes: 11 })).rejects.toMatchObject({ status: 404 });
       await expect(api.createUploadUrls({ resumeToken: token, kind: "video", mime: "text/html", withThumb: false, bytes: 11 })).rejects.toMatchObject({ status: 400 });
@@ -162,7 +168,14 @@ describe.skipIf(!haveDb)("funnel api", () => {
       const h = await api.createHandoff(token);
       const t = h.url.split("/").pop() as string;
       const used = await api.consumeHandoff(t);
-      expect(used).toMatchObject({ slug, resumeToken: token });
+      // The old token is hashed in the database, so handoff issues a fresh one and the old one stops working.
+      expect(used).toMatchObject({ slug });
+      const newToken = (used as { resumeToken: string }).resumeToken;
+      expect(newToken).not.toBe(token);
+      await expect(api.createHandoff(token)).rejects.toMatchObject({ status: 404 });
+      const [afterHand] = await db().select().from(tables.applicants).where(eq(tables.applicants.id, s.applicant_id));
+      expect(afterHand.resumeTokenHash).toBe(hashToken(newToken));
+      token = newToken;
       expect(await api.consumeHandoff(t)).toBeNull();
       const h2 = await api.createHandoff(token);
       await db().update(tables.applicants).set({ handoffExpiresAt: new Date(Date.now() - 1000) }).where(eq(tables.applicants.id, s.applicant_id));

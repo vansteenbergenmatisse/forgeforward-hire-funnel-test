@@ -7,6 +7,7 @@ process.env.R2_KEY_PREFIX ||= "test/";
 process.env.ADMIN_KEY ||= "t".repeat(48);
 
 import { closeDb, db, tables } from "@/platform/db";
+import { hashToken } from "@/shared/token-hash";
 import { handleCalcomWebhook, signCalcomBody } from "@/features/bookings/server";
 import {
   deleteApplicant,
@@ -55,7 +56,7 @@ async function makeApplicant(stageId: string | null, mail: string) {
     .values({
       projectId,
       stageId,
-      resumeToken: `rt-${crypto.randomUUID()}`,
+      resumeTokenHash: hashToken(`rt-${crypto.randomUUID()}`),
       isTest: true,
       firstName: "Test",
       lastName: "Person",

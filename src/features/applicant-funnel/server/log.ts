@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, tables } from "@/platform/db";
 import { recordSystemError } from "@/platform/logging/system-errors";
+import { hashToken } from "@/shared/token-hash";
 
 /**
  * The funnel client does not call `api.log` today, so there are no exact event names to list. Only these
@@ -28,7 +29,7 @@ export async function logClientEvent(input: z.output<typeof logSchema>) {
     const [a] = await db()
       .select({ id: tables.applicants.id })
       .from(tables.applicants)
-      .where(eq(tables.applicants.resumeToken, input.resumeToken));
+      .where(eq(tables.applicants.resumeTokenHash, hashToken(input.resumeToken)));
     applicantId = a?.id ?? null;
   }
   const json = JSON.stringify(input.data);

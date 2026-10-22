@@ -1,17 +1,19 @@
 import { and, asc, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { db, tables } from "@/platform/db";
-import { deleteObject, headObject, listObjects } from "@/platform/r2";
+import { deleteObject, headObject, listObjects, withPrefix } from "@/platform/r2";
 import { recordSystemError } from "@/platform/logging/system-errors";
 import { DEFAULT_BUDGET_MS, mapLimit } from "./budget";
-import { applicantFolders, mediaKeys, retentionCutoff } from "./rules";
+import { applicantFolders, mediaKeys, ownFolders, retentionCutoff } from "./rules";
 
 const BATCH = 25;
 const CONCURRENCY = 5;
 
 /** Every key under the applicant's own folders: earlier takes, replaced files and uploads that were never completed. */
-async function folderKeys(applicantId: string, known: string[]): Promise<string[]> {
+async function folderKeys(applicantId: string, slug: string, known: string[]): Promise<string[]> {
   const keys: string[] = [];
-  for (const folder of applicantFolders(applicantId, known)) {
+  // Own folders by project slug cover applicants who never stored a key (video never completed).
+  const folders = new Set([...applicantFolders(applicantId, known), ...ownFolders(withPrefix(""), slug, applicantId)]);
+  for (const folder of folders) {
     let token: string | undefined;
     do {
       const page = await listObjects(folder, { token });
@@ -41,7 +43,10 @@ export type RetentionResult = {
   sample: { applicantId: string; files: number }[];
 };
 
-/** Deletes media of applicants older than 30 days that are not in a positive stage. Resumable by cursor. */
+/**
+ * Deletes media of applicants older than 30 days that are not in a positive stage. Resumable by cursor.
+ * Applicants who never completed a video are swept too: everything under their own folders goes, then they are marked done.
+ */
 export async function runRetention(opts: RunOptions = {}): Promise<RetentionResult> {
   const now = opts.now ?? new Date();
   const started = Date.now();
@@ -63,14 +68,15 @@ export async function runRetention(opts: RunOptions = {}): Promise<RetentionResu
         videoKey: a.videoKey,
         thumbKey: a.thumbKey,
         taskFileKey: a.taskFileKey,
+        slug: tables.projects.slug,
       })
       .from(a)
+      .innerJoin(tables.projects, eq(a.projectId, tables.projects.id))
       .leftJoin(tables.stages, eq(a.stageId, tables.stages.id))
       .where(
         and(
           lt(a.createdAt, retentionCutoff(now)),
           isNull(a.videoDeletedAt),
-          or(isNotNull(a.videoKey), isNotNull(a.thumbKey), isNotNull(a.taskFileKey)),
           or(isNull(a.stageId), eq(tables.stages.isPositive, false)),
           cursor ? gt(a.id, cursor) : undefined,
         ),
@@ -83,17 +89,19 @@ export async function runRetention(opts: RunOptions = {}): Promise<RetentionResu
       const known = mediaKeys(row);
       result.applicants += 1;
       try {
-        const keys = [...new Set([...known, ...(await folderKeys(row.id, known))])];
+        const keys = [...new Set([...known, ...(await folderKeys(row.id, row.slug, known))])];
         result.files += keys.length;
         if (result.sample.length < 20) result.sample.push({ applicantId: row.id, files: keys.length });
         if (dryRun) return;
         for (const key of keys) await deleteObject(key);
         await db().update(a).set({ videoDeletedAt: new Date() }).where(eq(a.id, row.id));
-        await db().insert(tables.applicantEvents).values({
-          applicantId: row.id,
-          type: "media_deleted",
-          data: { files: keys.length },
-        });
+        if (keys.length > 0) {
+          await db().insert(tables.applicantEvents).values({
+            applicantId: row.id,
+            type: "media_deleted",
+            data: { files: keys.length },
+          });
+        }
       } catch (err) {
         result.failed += 1;
         await recordSystemError({

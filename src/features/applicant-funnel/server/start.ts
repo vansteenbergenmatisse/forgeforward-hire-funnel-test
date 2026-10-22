@@ -3,6 +3,7 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { db, tables } from "@/platform/db";
 import { optionalEnv } from "@/shared/env";
 import { takeRateLimit } from "@/shared/rate-limit";
+import { hashToken } from "@/shared/token-hash";
 import { CONSENT_TEXT, startSchema } from "../schemas";
 import { buildAnswers } from "./answers";
 import { isTestConsole, TEST_CONSOLE_HEADER } from "./bypass";
@@ -69,7 +70,7 @@ export async function startApplication(req: Request, body: unknown, key: string)
         .values({
           projectId: project.id,
           stageId: null,
-          resumeToken,
+          resumeTokenHash: hashToken(resumeToken),
           isTest: bypass,
           firstName: input.firstName,
           lastName: input.lastName,

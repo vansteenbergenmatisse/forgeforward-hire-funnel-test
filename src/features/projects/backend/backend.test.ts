@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { eq, inArray } from "drizzle-orm";
 import { closeDb, db, tables } from "@/platform/db";
+import { hashToken } from "@/shared/token-hash";
 import { ApiError } from "./errors";
 import { createProject } from "./projects";
 import { getProject, listProjects } from "./bundles";
@@ -167,7 +168,7 @@ describe.skipIf(!haveDb)("stages", () => {
         .values({
           projectId,
           stageId: trial.id,
-          resumeToken: `t-${suffix}-${i}-${crypto.randomUUID()}`,
+          resumeTokenHash: hashToken(`t-${suffix}-${i}-${crypto.randomUUID()}`),
           isTest: true,
           firstName: "Zz",
           lastName: "Test",
@@ -214,7 +215,7 @@ describe.skipIf(!haveDb)("questions", () => {
       .insert(tables.applicants)
       .values({
         projectId,
-        resumeToken: `t-${suffix}-${crypto.randomUUID()}`,
+        resumeTokenHash: hashToken(`t-${suffix}-${crypto.randomUUID()}`),
         isTest: true,
         firstName: "Zz",
         lastName: "Ans",

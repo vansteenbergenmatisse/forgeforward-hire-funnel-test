@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applicantFolders, daysUntilDeletion, isRetentionEligible, mediaKeys, retentionCutoff, type RetentionSubject } from "./rules";
+import { applicantFolders, daysUntilDeletion, isRetentionEligible, mediaKeys, ownFolders, retentionCutoff, type RetentionSubject } from "./rules";
 
 const now = new Date("2026-10-21T03:00:00Z");
 const daysAgo = (n: number) => new Date(now.getTime() - n * 86_400_000);
@@ -28,9 +28,12 @@ describe("retention eligibility", () => {
   it("counts Did not finish applicants (no stage) as not positive", () => {
     expect(isRetentionEligible({ ...base, stageIsPositive: null }, now)).toBe(true);
   });
-  it("skips applicants that are already deleted or have no files", () => {
+  it("skips applicants that are already deleted", () => {
     expect(isRetentionEligible({ ...base, videoDeletedAt: daysAgo(1) }, now)).toBe(false);
-    expect(isRetentionEligible({ ...base, videoKey: null, thumbKey: null }, now)).toBe(false);
+  });
+  it("includes applicants who never finished a video, so their stray uploads get swept", () => {
+    expect(isRetentionEligible({ ...base, videoKey: null, thumbKey: null }, now)).toBe(true);
+    expect(isRetentionEligible({ ...base, videoKey: null, thumbKey: null, createdAt: daysAgo(5) }, now)).toBe(false);
   });
   it("lists only the keys that exist", () => {
     expect(mediaKeys(base)).toEqual(["videos/a.webm", "thumbs/a.jpg"]);
@@ -58,5 +61,20 @@ describe("applicantFolders", () => {
   it("returns only folders whose last segment is the applicant id", () => {
     const keys = ["test/videos/s/a1/1.webm", "test/thumbs/s/a1/1.jpg", "test/tasks/s/a1/x-cv.pdf", "videos/s/other/2.webm", "loose.webm"];
     expect(applicantFolders("a1", keys).sort()).toEqual(["test/tasks/s/a1/", "test/thumbs/s/a1/", "test/videos/s/a1/"]);
+  });
+});
+
+describe("ownFolders", () => {
+  const id = "0b9c4a52-7d1e-4f3a-9c55-1a2b3c4d5e6f";
+  it("builds the three folders of one applicant", () => {
+    expect(ownFolders("test/", "setter", id)).toEqual([`test/videos/setter/${id}/`, `test/thumbs/setter/${id}/`, `test/tasks/setter/${id}/`]);
+  });
+  it("refuses an id or slug that could widen the delete", () => {
+    expect(ownFolders("", "setter", "")).toEqual([]);
+    expect(ownFolders("", "setter", "../x")).toEqual([]);
+    expect(ownFolders("", "setter", `${id}/`)).toEqual([]);
+    expect(ownFolders("", "a/b", id)).toEqual([]);
+    expect(ownFolders("", "", id)).toEqual([]);
+    expect(ownFolders("", "..", id)).toEqual([]);
   });
 });
