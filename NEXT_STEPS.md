@@ -55,7 +55,7 @@ I create `TEST_DATABASE_URL` (a second Neon branch or database) and `ADMIN_KEY` 
 |---|---|---|
 | A20 DONE | Vercel env vars | Set. Change `APP_URL` on Production to `https://apply.forgeforward.io` when the domain is live (A7). |
 | A21 DONE | Production Neon branch URL | Neon, branch for production, Connect, pooled URL. In Vercel, project Settings, Environment Variables, edit `DATABASE_URL` and `DATABASE_URL_UNPOOLED` for Production only. Today all three environments share the Development URL. |
-| A22 | GitHub repo secrets for the nightly backup | GitHub repo, Settings, Secrets and variables, Actions: `DATABASE_URL_UNPOOLED` (Production), `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`. |
+| A22 DONE | GitHub repo secrets for the nightly backup | GitHub repo, Settings, Secrets and variables, Actions: `DATABASE_URL_UNPOOLED` (Production), `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`. |
 | A23 | Add the Vercel URL to R2 CORS | Cloudflare, R2, `forge-hire`, Settings, CORS Policy (already lists localhost:3000, forge-hire.vercel.app, apply.forgeforward.io). |
 
 ### 5. Later
@@ -76,12 +76,12 @@ Built, tested and committed (2026-10-21): Phase 1, Phase 2 funnel API, Phase 3 a
 ### Open for Claude
 - [x] Dashboard on the database: loading skeleton, DB stage ids, unmatched bookings and `linkBooking` wired, messages saved in link mode, `outputFileTracingIncludes` for the sample video, task body bug fixed. 9 dashboard Playwright specs green.
 - [x] Vercel env (all environments) set. First deploy to https://forge-hire.vercel.app is live and healthy (health ok, funnel loads the real project, admin 404 without cookie, cron 401 without token).
-- [ ] Run the live test console once: open `https://forge-hire.vercel.app/admin/k/<ADMIN_KEY>`, go to `/admin/test`, expect 13 green, then "Delete test data" shows 0 left. Checks 8 and 9 (Cal.com webhook) show as skipped: decision 2026-10-22, the Cal.com webhook is not used, so no `CALCOM_WEBHOOK_SECRET`. Bookings do not move cards automatically.
-- [x] Production has its own Neon branch `production` (schema-only copy, migrations 0000 and 0001 recorded, seeded, Cal link set to https://cal.com/matisseforgeforward/interview-appointment-setter). Vercel Production `DATABASE_URL` and `DATABASE_URL_UNPOOLED` point at it; Preview and Development still use the Development branch.
+- [x] Live test console on production (2026-10-22): 13 of 13 pass (8 and 9 skipped on purpose), then 0 test rows and 0 files left. The new `production` branch saw the test applicant.
+- [x] Production has its own Neon branch `production` (schema-only copy, migrations 0000 and 0001 recorded, seeded, Cal link set to https://cal.com/matisseforgeforward/interview-appointment-setter). Vercel Production reads it through `APP_DATABASE_URL` (the app prefers it over `DATABASE_URL`, because the Neon integration rewrites `DATABASE_URL` on every production deploy); Preview and Development still use the Development branch.
 - [x] `applicants.task_file_name` and `task_file_bytes` added (migration `0001_minor_black_panther`, applied to test, Development and Production). Optional `unmatched_bookings.linked_applicant_id`, `dismissed_at` stay inside the payload JSON for now.
 - [ ] Hired and Rejected are matched by stage NAME (no role column). Keep those names for terminal stages or add roles.
 - [x] Template validation: the server now rejects unknown `{variables}` with a 400 (`unknown_variables`). Not committed yet.
-- [ ] Run `pnpm cron:backup` once by hand so the first backup exists (needs `postgresql@18` pg_dump, installed locally).
+- [x] First production backup made by hand (`backups/forge-hire-20261022T135502Z.sql.gz`). GitHub backup secrets are set; the nightly Action still has to run once.
 - [ ] Final: run the test console on production (13 green, then 0 test rows left), confirm last night's backup and the restore proof, decide on the dev-only route `/dev/video-flow` (404 in production).
 
 ### Done (for reference)
