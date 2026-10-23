@@ -4,6 +4,7 @@ import { pruneOperationalTables } from "@/platform/db";
 import { rejectUnlessCron } from "@/platform/cron/auth";
 import { continueLater } from "@/platform/cron/continue";
 import { pruneIdempotencyKeys } from "@/features/applicant-funnel/server";
+import { finishPendingDeletions } from "@/features/project-lifecycle/server";
 import { runRetention } from "@/features/retention/server";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,8 @@ export async function GET(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Bad query" }, { status: 400 });
   if (!parsed.data.after && !parsed.data.dryRun) await pruneIdempotencyKeys().catch(() => 0);
   if (!parsed.data.after && !parsed.data.dryRun) await pruneOperationalTables().catch(() => undefined);
+  // Projects whose deletion was cut short are finished first, so they never linger.
+  if (!parsed.data.after && !parsed.data.dryRun) await finishPendingDeletions({ budgetMs: 20_000 }).catch(() => undefined);
   const result = await runRetention({ after: parsed.data.after, dryRun: Boolean(parsed.data.dryRun) });
   if (!result.done && !result.dryRun) continueLater(req, result.nextCursor);
   return NextResponse.json(result);

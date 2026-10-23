@@ -5,7 +5,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, Link2, Pencil, X } from "lucide-react";
 import { buildCalLink } from "@/features/bookings";
-import { Button } from "@/components/ui";
+import { Badge, Button } from "@/components/ui";
+import { ProjectDangerZone, ProjectStatusControl } from "@/features/project-lifecycle";
 import { cn } from "@/shared/cn";
 import { normalizeCalLink, validateCalLink, validateProjectName, validateReplyDays } from "../logic/general";
 import { INTRO_MAX, countText } from "../logic/limits";
@@ -93,15 +94,22 @@ export function GeneralTab({ api }: { api: SettingsApi }) {
           <Card title="Status and rules" id="rules">
             <SettingRow
               id="open-label"
-              title="Open for applications"
+              title="Status"
               description={
                 project.status === "open" ? (
-                  "Applicants can apply. Turn off to close the role."
+                  "Active. Applicants can apply. Deactivate to stop new applicants. Nothing is deleted."
                 ) : (
-                  <>Closed. Applicants see: &ldquo;Applications for this role are closed.&rdquo;</>
+                  <>Inactive. Applicants see: &ldquo;Applications for this role are closed.&rdquo; The board and the data stay. Reactivate any time.</>
                 )
               }
-              control={<Toggle checked={project.status === "open"} labelledBy="open-label" onChange={(v) => setProject({ status: v ? "open" : "closed" })} />}
+              control={
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <Badge tone={project.status === "open" ? "green" : "gray"} dot>
+                    {project.status === "open" ? "Active" : "Inactive"}
+                  </Badge>
+                  <ProjectStatusControl slug={api.slug} name={project.name} active={project.status === "open"} />
+                </div>
+              }
             />
             <SettingRow
               id="handoff-label"
@@ -131,6 +139,9 @@ export function GeneralTab({ api }: { api: SettingsApi }) {
           </Card>
         }
       />
+      <div className="mt-5">
+        <ProjectDangerZone slug={api.slug} name={project.name} active={project.status === "open"} />
+      </div>
     </>
   );
 }

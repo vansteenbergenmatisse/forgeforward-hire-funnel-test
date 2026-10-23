@@ -16,6 +16,11 @@ export const createProjectBody = z.strictObject({
   sourceSlug: slugParam.optional(),
 });
 
+export const statusBody = z.strictObject({ status: z.enum(["open", "closed"]) });
+
+/** Delete confirmation: the slug must be repeated, so a stray request cannot remove a project. */
+export const deleteProjectBody = z.strictObject({ confirmSlug: slugParam });
+
 export const settingsPatch = z.strictObject({
   name: name(60),
   slug: z.string().max(60),

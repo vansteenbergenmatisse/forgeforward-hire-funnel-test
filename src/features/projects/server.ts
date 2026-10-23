@@ -3,6 +3,7 @@ export { readTaskContent } from "./sanitize-html";
 export { seedAppointmentSetter } from "./provision";
 export { listProjects, getProject, loadProjectBySlug } from "./backend/bundles";
 export { createProject } from "./backend/projects";
+export { setProjectStatus } from "./backend/status";
 export { getSettings, updateSettings } from "./backend/settings";
 export { createStage, updateStage, deleteStage, reorderStages } from "./backend/stages";
 export { createQuestion, updateQuestion, deleteQuestion, reorderQuestions } from "./backend/questions";

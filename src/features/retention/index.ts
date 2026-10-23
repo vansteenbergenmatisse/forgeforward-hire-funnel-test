@@ -11,3 +11,4 @@ export {
   daysUntilDeletion,
   type RetentionSubject,
 } from "./rules";
+export { DEFAULT_BUDGET_MS, mapLimit } from "./budget";

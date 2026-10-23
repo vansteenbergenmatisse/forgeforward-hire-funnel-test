@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui";
 
 const FUNNEL_HOST = "apply.forgeforward.io/a";
 
-/** The applicant link with a Copy button, plus the Open or Closed badge. */
+/** The applicant link with a Copy button, plus the Active or Inactive badge. */
 export function FunnelLinkChip({ slug, open }: { slug: string; open: boolean }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,7 +39,7 @@ export function FunnelLinkChip({ slug, open }: { slug: string; open: boolean }) 
         </button>
       </div>
       <Badge tone={open ? "green" : "gray"} dot>
-        {open ? "Open" : "Closed"}
+        {open ? "Active" : "Inactive"}
       </Badge>
     </div>
   );

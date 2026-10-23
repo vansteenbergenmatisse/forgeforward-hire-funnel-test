@@ -145,6 +145,50 @@ export async function createRemoteProject(input: { name: string; mode: "blank" |
   return dto;
 }
 
+/**
+ * Deactivates ("closed") or reactivates ("open") a project. The card changes at once and goes back if the server refuses.
+ * Goes through the dedicated route so the change is audited. Any unsaved edit in the settings screen is left alone.
+ */
+export async function setRemoteStatus(slug: string, status: "open" | "closed"): Promise<void> {
+  const rec = getRecord(slug);
+  if (!rec) throw new Error("Project not found.");
+  const before = rec.def.status;
+  const apply = (s: "open" | "closed") => {
+    set({ ...state, records: state.records.map((r) => (r.def.slug === slug ? { ...r, def: { ...r.def, status: s } } : r)) });
+    const base = baselines.get(slug);
+    if (base) baselines.set(slug, { ...base, def: { ...base.def, status: s } });
+  };
+  apply(status);
+  try {
+    await adminFetch("PATCH", `/api/admin/projects/${slug}`, { status });
+  } catch (e) {
+    apply(before);
+    throw e;
+  }
+}
+
+export type DeletionPreviewDto = { slug: string; name: string; deleting: boolean; counts: { applicants: number; files: number; stages: number; questions: number; templates: number; messages: number } };
+
+export const previewRemoteDelete = (slug: string) => adminFetch<DeletionPreviewDto>("DELETE", `/api/admin/projects/${slug}?preview=1`);
+
+/**
+ * Deletes a project on the server and drops it from the cache. A big project can take several calls: each call
+ * works inside a time budget and the loop calls again until the server says done. The project is hidden from the list
+ * from the first call on, so it leaves the screen at once.
+ */
+export async function deleteRemoteProject(slug: string): Promise<{ done: boolean }> {
+  let done = false;
+  for (let i = 0; i < 6 && !done; i++) {
+    const out = await adminFetch<{ done: boolean }>("DELETE", `/api/admin/projects/${slug}`, { confirmSlug: slug });
+    done = out.done;
+    if (i === 0) {
+      baselines.delete(slug);
+      set({ ...state, records: state.records.filter((r) => r.def.slug !== slug) });
+    }
+  }
+  return { done };
+}
+
 /** Moves a cached project to its new slug. The one place a slug changes on the client. */
 export function renameCachedSlug(oldSlug: string, newSlug: string) {
   const base = baselines.get(oldSlug);

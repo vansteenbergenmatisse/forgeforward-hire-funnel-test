@@ -152,3 +152,12 @@ APP_URL, CRON_SECRET, DATABASE_URL, TEST_DATABASE_URL, ADMIN_KEY, R2_ACCOUNT_ID,
 - The Postgres `pg_dump` for backups runs in GitHub Actions (postgresql-client 18, matches Neon). Locally: `brew install postgresql@18`.
 - GHL v2 sends use header `Version: v3` (override `GHL_API_VERSION`).
 - Rate limit store: Postgres by default, `FUNNEL_RATE_LIMIT_STORE=memory` for the in-memory one.
+
+## 10. Project lifecycle: deactivate, reactivate, delete (2026-10-23)
+- Deactivate = `projects.status = "closed"`; the dashboard calls it Inactive. The public link shows the closed notice, `/api/apply/start` answers 403 `closed`, people already mid-flow can finish (G12), data and retention are untouched. Reactivate = `"open"`. `PATCH /api/admin/projects/[slug]` `{status}` writes an audit row (`project.deactivate` / `project.reactivate`). The card menu and Settings > General both have it, with a toast and Undo.
+- Delete is irreversible. `DELETE /api/admin/projects/[slug]?preview=1` returns the counts for the dialog; `DELETE` with `{confirmSlug}` deletes. The dialog needs the project name typed.
+- Delete first sets `status = "deleting"` (hidden from lists, the admin lookups and `/a/<slug>`; the slug stays taken). Then, within a 40 s budget: each applicant (R2 files first, then the row with events, messages and system errors), unmatched bookings of those emails (unless the email also applied elsewhere), the R2 folders `videos|thumbs|tasks/<slug>/`, then the project row (stages, questions, templates cascade). A call that runs out of time returns `done: false`; the client calls again, `GET /api/admin/projects` finishes leftovers in `after()`, and the nightly retention cron runs `finishPendingDeletions` first. Safe to repeat.
+- Audit: `project.delete_requested` (counts) and `project.delete` (counts removed). No names or emails.
+- Code: `src/features/project-lifecycle` (UI + `server.ts`), `projects/backend/status.ts`, `projects/client/store.ts` (`setRemoteStatus`, `deleteRemoteProject`). No schema migration: `status` is a plain text column, `"deleting"` only widens the TypeScript enum.
+- Projects are read through the admin API only (no mock store for projects), so `NEXT_PUBLIC_ADMIN_API=mock` has nothing separate to implement.
+- Tests: `tests/project-lifecycle.test.ts` (DB + R2 `test/`), `e2e/dashboard/lifecycle.spec.ts`, `e2e/dashboard/project-edit.spec.ts`.

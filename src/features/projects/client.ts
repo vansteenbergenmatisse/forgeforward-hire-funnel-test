@@ -20,6 +20,9 @@ export {
   setBaseline,
   setLocalBundle,
   setMeta,
+  setRemoteStatus,
+  previewRemoteDelete,
+  deleteRemoteProject,
   subscribeRecords,
 } from "./client/store";
-export type { RecordMeta, RecordsState } from "./client/store";
+export type { RecordMeta, RecordsState, DeletionPreviewDto } from "./client/store";

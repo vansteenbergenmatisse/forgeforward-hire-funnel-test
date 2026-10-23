@@ -8,7 +8,7 @@ export function toDef(r: Row<"projects">): ProjectDef {
   return {
     slug: r.slug,
     name: r.name,
-    status: r.status,
+    status: r.status === "closed" ? "closed" : "open",
     intro: r.intro,
     calLink: r.calLink,
     videoPrompt: r.videoPrompt,

@@ -40,3 +40,9 @@ describe("helpers", () => {
     expect(safeHref("https://x.io")).toBe("https://x.io/");
   });
 });
+
+describe("answerText for choices", () => {
+  it("shows Choose one as the chosen text", () => {
+    expect(answerText({ label: "x", type: "single_choice", value: "3 to 5 years" })).toBe("3 to 5 years");
+  });
+});

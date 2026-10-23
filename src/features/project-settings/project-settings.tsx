@@ -2,6 +2,7 @@
 import { ADMIN_BASE_PATH } from "@/features/admin-access";
 
 import { AdminShell, PageHeader } from "@/components/layout";
+import { LifecycleToaster } from "@/features/project-lifecycle";
 import { GeneralTab } from "./tabs/general-tab";
 import { MessagesTab } from "./tabs/messages-tab";
 import { QuestionsTab } from "./tabs/questions-tab";
@@ -55,6 +56,7 @@ export function ProjectSettings({ slug, tab }: { slug: string; tab: SettingsTab 
           <div role="status" aria-label="Loading settings" className="h-80 animate-pulse rounded-xl border border-line bg-white" />
         )}
       </main>
+      <LifecycleToaster />
     </AdminShell>
   );
 }

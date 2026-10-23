@@ -1,13 +1,14 @@
 import type { QuestionDef, QuestionType } from "@/features/projects";
 import { normalizeOptions, typeNeedsOptions, validateOptions } from "./options";
 
-export const QUESTION_TYPES: { id: QuestionType; label: string }[] = [
-  { id: "short_text", label: "Short text" },
-  { id: "long_text", label: "Long text" },
-  { id: "number", label: "Number" },
-  { id: "single_choice", label: "Single choice" },
-  { id: "multi_choice", label: "Multi choice" },
-  { id: "yes_no", label: "Yes or no" },
+/** `single_choice` is "Choose one" (round bullets, one answer, stored as text). `multi_choice` is "Choose several" (checkboxes, stored as a list). */
+export const QUESTION_TYPES: { id: QuestionType; label: string; hint: string }[] = [
+  { id: "short_text", label: "Short text", hint: "One line." },
+  { id: "long_text", label: "Long text", hint: "A few sentences." },
+  { id: "number", label: "Number", hint: "Digits only." },
+  { id: "single_choice", label: "Choose one", hint: "Round bullets. One answer." },
+  { id: "multi_choice", label: "Choose several", hint: "Checkboxes. Any number." },
+  { id: "yes_no", label: "Yes or no", hint: "Two buttons." },
 ];
 
 export function typeLabel(type: QuestionType): string {

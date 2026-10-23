@@ -147,14 +147,14 @@ export function PageHeader({
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
       {tabs && (
-        <div className="flex border-b border-line px-7">
+        <div className="flex overflow-x-auto border-b border-line px-4 sm:px-7">
           {tabs.map((t) => (
             <Link
               key={t.label}
               href={t.href}
               aria-current={t.active ? "page" : undefined}
               className={cn(
-                "mr-[22px] inline-flex h-[42px] items-center border-b-2 px-0.5 text-sm",
+                "mr-[22px] inline-flex h-[42px] shrink-0 items-center whitespace-nowrap border-b-2 px-0.5 text-sm",
                 t.active ? "border-charcoal font-extrabold text-charcoal" : "border-transparent font-semibold text-muted hover:text-charcoal",
               )}
             >

@@ -23,7 +23,8 @@ export const projects = pgTable("projects", {
   id: id(),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
-  status: text("status", { enum: ["open", "closed"] }).notNull().default("open"),
+  /** "closed" is Inactive in the dashboard. "deleting" is a project whose removal started: hidden everywhere, finished by the next call or the nightly cron. */
+  status: text("status", { enum: ["open", "closed", "deleting"] }).notNull().default("open"),
   intro: text("intro").notNull().default(""),
   calLink: text("cal_link").notNull().default(""),
   videoPrompt: text("video_prompt").notNull(),

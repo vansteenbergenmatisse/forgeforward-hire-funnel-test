@@ -1,13 +1,14 @@
 "use client";
 import { ADMIN_BASE_PATH } from "@/features/admin-access";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { AdminShell, PageHeader } from "@/components/layout";
 import { Banner, Button } from "@/components/ui";
 import { useApplicants } from "@/features/applicants";
 import { useSystemAlerts } from "@/features/backups";
+import { LifecycleToaster } from "@/features/project-lifecycle";
 import { useProjects } from "../store";
 import { AlertBanner } from "./alert-banner";
 import { NewProjectDialog } from "./new-project-dialog";
@@ -22,7 +23,10 @@ export function ProjectsHome() {
   const [creating, setCreating] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tileRef = useRef<HTMLButtonElement>(null);
-  const first = state.projects[0]?.def.name;
+  // Active projects first, inactive ones below. Creation order is kept inside each group.
+  const sorted = useMemo(() => [...state.projects.filter((p) => p.def.status === "open"), ...state.projects.filter((p) => p.def.status !== "open")], [state.projects]);
+  const first = sorted[0]?.def.name;
+  const empty = !state.loading && !state.error && state.projects.length === 0;
   const { alerts: activeAlerts, resolve: resolveAlert } = useSystemAlerts();
 
   // Saves the booking on the applicant (moves the card on the server). The row is marked linked only after the server agreed.
@@ -50,7 +54,7 @@ export function ProjectsHome() {
           </Button>
         }
       />
-      <main className="flex flex-col gap-[18px] px-7 py-[22px]">
+      <main className="flex flex-col gap-[18px] px-4 py-[22px] sm:px-7">
         {applicantsError && (
           <Banner
             action={
@@ -68,9 +72,18 @@ export function ProjectsHome() {
         {activeAlerts.map((a) => (
           <AlertBanner key={a.id} alert={a} onResolve={a.id.startsWith("errors:") ? () => void resolveAlert(a.id) : undefined} />
         ))}
+        {empty ? (
+          <div className="flex flex-col items-center gap-3 rounded-[14px] border-2 border-dashed border-line-strong px-6 py-14 text-center">
+            <p className="font-display text-[28px] leading-none">No projects yet</p>
+            <p className="max-w-sm text-[15px] text-muted">Create a project to get an application link and a board for the people who apply.</p>
+            <Button className="h-12" icon={<Plus className="size-4" aria-hidden />} onClick={(e) => open(e.currentTarget)}>
+              Create project
+            </Button>
+          </div>
+        ) : (
         <div className="grid items-stretch gap-[18px] xl:grid-cols-[1fr_340px]">
-          <div className="flex flex-col gap-[18px]">
-            {state.projects.map((p) => (
+          <div className="flex min-w-0 flex-col gap-[18px]">
+            {sorted.map((p) => (
               <ProjectCard key={p.def.slug} project={p} />
             ))}
           </div>
@@ -87,8 +100,10 @@ export function ProjectsHome() {
             <span className="text-[13px] font-medium">Start blank{first ? ` or copy ${first}` : ""}</span>
           </button>
         </div>
+        )}
         <UnmatchedBookings bookings={state.bookings} applicants={applicants} onLink={linkBooking} onDismiss={actions.dismissBooking} />
       </main>
+      <LifecycleToaster />
       <NewProjectDialog
         open={creating}
         projects={state.projects}

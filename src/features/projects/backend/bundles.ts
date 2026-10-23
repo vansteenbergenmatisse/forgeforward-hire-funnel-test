@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db, tables } from "@/platform/db";
 import { notFound } from "./errors";
 import { toDef, toQuestion, toStage, toTemplate } from "./mappers";
@@ -11,7 +11,7 @@ export type DbOrTx = Db | Tx;
 const T = tables;
 
 export async function projectBySlug(d: DbOrTx, slug: string) {
-  const [row] = await d.select().from(T.projects).where(eq(T.projects.slug, slug)).limit(1);
+  const [row] = await d.select().from(T.projects).where(and(eq(T.projects.slug, slug), ne(T.projects.status, "deleting"))).limit(1);
   if (!row) throw notFound("Project");
   return row;
 }
@@ -45,7 +45,7 @@ async function assemble(d: DbOrTx, rows: (typeof T.projects.$inferSelect)[]): Pr
 
 export async function listProjects(): Promise<ProjectRecordDto[]> {
   const d = db();
-  return assemble(d, await d.select().from(T.projects).orderBy(asc(T.projects.createdAt)));
+  return assemble(d, await d.select().from(T.projects).where(ne(T.projects.status, "deleting")).orderBy(asc(T.projects.createdAt)));
 }
 
 export async function getProject(slug: string, d: DbOrTx = db()): Promise<ProjectRecordDto> {
@@ -55,7 +55,7 @@ export async function getProject(slug: string, d: DbOrTx = db()): Promise<Projec
 /** For the public funnel: the project plus its questions, or null when the slug is unknown. */
 export async function loadProjectBySlug(slug: string): Promise<ProjectBundle | null> {
   const d = db();
-  const [row] = await d.select().from(T.projects).where(eq(T.projects.slug, slug)).limit(1);
+  const [row] = await d.select().from(T.projects).where(and(eq(T.projects.slug, slug), ne(T.projects.status, "deleting"))).limit(1);
   if (!row) return null;
   const { stageCounts, ...bundle } = (await assemble(d, [row]))[0];
   void stageCounts;

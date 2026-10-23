@@ -44,3 +44,14 @@ describe("csv", () => {
     expect(csv).toContain("11:42 pm");
   });
 });
+
+describe("csv answer column", () => {
+  const stages = MOCK_STAGES;
+  const base = buildMockApplicants()[0];
+  const q = { id: "q1", label: "Pick one" };
+  const row = (value: string | string[]) => buildApplicantsCsv([{ ...base, answers: { q1: { label: "Pick one", type: "single_choice", value } } }], stages, q).split("\r\n")[1];
+  it("writes a Choose one answer as the chosen text and a Choose several answer as a joined list", () => {
+    expect(row("3 to 5 years")).toContain("3 to 5 years");
+    expect(row(["Red", "Blue"])).toContain('"Red, Blue"');
+  });
+});

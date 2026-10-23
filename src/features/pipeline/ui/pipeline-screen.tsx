@@ -4,7 +4,7 @@ import { ADMIN_BASE_PATH } from "@/features/admin-access";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Download } from "lucide-react";
+import { Download, Settings } from "lucide-react";
 import type { Channel } from "@/features/projects";
 import { ApplicantDrawer } from "@/features/applicant-review";
 import { useProjects } from "@/features/project-admin";
@@ -131,6 +131,13 @@ function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, showTe
               </Button>
             )}
             <FunnelLinkChip slug={slug} open={def.status === "open"} />
+            <Link
+              href={`${ADMIN_BASE_PATH}/p/${slug}/settings`}
+              className="inline-flex h-10 items-center gap-[7px] whitespace-nowrap rounded-[9px] border border-line-strong bg-white px-3.5 text-sm font-bold text-charcoal hover:bg-sand"
+            >
+              <Settings className="size-4" aria-hidden />
+              Edit project
+            </Link>
           </>
         }
         tabs={[

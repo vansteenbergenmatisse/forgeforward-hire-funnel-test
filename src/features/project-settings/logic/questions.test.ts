@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MOCK_QUESTIONS } from "@/features/projects";
-import { blankQuestion, normalizeQuestion, setArchived, validateQuestion } from "./questions";
+import { QUESTION_TYPES, blankQuestion, normalizeQuestion, setArchived, typeLabel, validateQuestion } from "./questions";
 
 describe("validateQuestion", () => {
   it("accepts the mock question", () => expect(validateQuestion(MOCK_QUESTIONS[0])).toEqual({}));
@@ -23,5 +23,18 @@ describe("setArchived", () => {
     expect(archived).toHaveLength(MOCK_QUESTIONS.length);
     expect(archived[0].archived).toBe(true);
     expect(setArchived(archived, MOCK_QUESTIONS[0].id, false)[0].archived).toBe(false);
+  });
+});
+
+describe("question types", () => {
+  it("offers Choose one and Choose several next to the other types", () => {
+    expect(QUESTION_TYPES.map((t) => t.id)).toEqual(["short_text", "long_text", "number", "single_choice", "multi_choice", "yes_no"]);
+    expect(typeLabel("single_choice")).toBe("Choose one");
+    expect(typeLabel("multi_choice")).toBe("Choose several");
+  });
+  it("keeps the choices when a question switches between Choose one and Choose several", () => {
+    const one = { ...blankQuestion("q"), label: "Pick", type: "single_choice" as const, options: ["A", "B", "C"] };
+    expect(normalizeQuestion({ ...one, type: "multi_choice" }).options).toEqual(["A", "B", "C"]);
+    expect(normalizeQuestion({ ...one, type: "multi_choice" }).type).toBe("multi_choice");
   });
 });

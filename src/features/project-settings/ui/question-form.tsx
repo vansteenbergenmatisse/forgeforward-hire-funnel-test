@@ -3,9 +3,10 @@
 import { useState, type ReactNode } from "react";
 import type { QuestionDef, QuestionType } from "@/features/projects";
 import { typeNeedsOptions } from "../logic/options";
-import { QUESTION_TYPES, validateQuestion, type QuestionErrors } from "../logic/questions";
+import { validateQuestion, type QuestionErrors } from "../logic/questions";
 import { ChoicesEditor, type ChoiceRow } from "./choices-editor";
-import { DenseInput, DenseSelect, DenseTextArea, SettingRow, Toggle } from "./dense";
+import { DenseInput, DenseTextArea, SettingRow, Toggle } from "./dense";
+import { QuestionTypePicker } from "./question-type-picker";
 
 function toRows(options: string[], seed: string): ChoiceRow[] {
   return options.map((value, i) => ({ id: `${seed}-${i}`, value }));
@@ -55,15 +56,17 @@ export function QuestionForm({
         onChange={(e) => apply({ label: e.target.value })}
         onBlur={() => setTouched((t) => ({ ...t, label: true }))}
       />
-      <DenseSelect label="Type" value={draft.type} onChange={(e) => changeType(e.target.value as QuestionType)}>
-        {QUESTION_TYPES.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.label}
-          </option>
-        ))}
-      </DenseSelect>
+      <QuestionTypePicker value={draft.type} onChange={changeType} />
       <DenseInput label="Help text" optional placeholder="Optional. Shows under the question." value={draft.helpText} onChange={(e) => apply({ helpText: e.target.value })} />
-      {typeNeedsOptions(draft.type) && <ChoicesEditor rows={rows} error={show("options")} onChange={(r) => apply({}, r)} onBlur={() => setTouched((t) => ({ ...t, options: true }))} />}
+      {typeNeedsOptions(draft.type) && (
+        <ChoicesEditor
+          rows={rows}
+          kind={draft.type === "multi_choice" ? "several" : "one"}
+          error={show("options")}
+          onChange={(r) => apply({}, r)}
+          onBlur={() => setTouched((t) => ({ ...t, options: true }))}
+        />
+      )}
       <SettingRow
         id={`req-${initial.id}`}
         title="Required"

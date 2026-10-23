@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 import { db, tables } from "@/platform/db";
 import type { FunnelProject } from "../types";
 import { taskContentToHtml } from "./rich-text";
@@ -10,7 +10,7 @@ export function toFunnelProject(p: ProjectRow, qs: QuestionRow[]): FunnelProject
   return {
     slug: p.slug,
     name: p.name,
-    status: p.status,
+    status: p.status === "open" ? "open" : "closed",
     intro: p.intro,
     calLink: p.calLink,
     videoPrompt: p.videoPrompt,
@@ -39,7 +39,7 @@ export function toFunnelProject(p: ProjectRow, qs: QuestionRow[]): FunnelProject
 }
 
 export async function loadProjectRow(slug: string) {
-  const [row] = await db().select().from(tables.projects).where(eq(tables.projects.slug, slug));
+  const [row] = await db().select().from(tables.projects).where(and(eq(tables.projects.slug, slug), ne(tables.projects.status, "deleting")));
   return row ?? null;
 }
 

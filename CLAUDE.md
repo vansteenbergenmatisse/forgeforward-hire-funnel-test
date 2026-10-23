@@ -21,6 +21,7 @@ Hiring funnel (/a/[slug]) and private applicant dashboard (/adminMatt) for Forge
 - `features/pipeline`: board, Did not finish, Table. `features/applicant-review`: drawer + player. `features/messaging`: template fill + send modal.
 - `features/project-admin`: Projects home, projects store. `features/project-settings`: 7 settings tabs. `features/test-console`: simulated test console.
 - `features/projects`: types, defaults, fixtures. Its `index` is client-safe; server-only code is in `projects/server.ts`.
+- `features/project-lifecycle`: deactivate, reactivate and delete a project (card menu, Settings > General, danger zone). `index` is client-safe; server code is in `project-lifecycle/server.ts`.
 - `features/admin-access`: admin cookie gate, password login (`/adminMatt/login`, 8 wrong tries per IP per 15 min in Postgres), key link fallback. `features/bookings`: Cal.com link builder.
 - `components/{brand,ui,forms,layout,funnel}`: shared UI. `platform/{db,r2}`: server only, never import from client components.
 
