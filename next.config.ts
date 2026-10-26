@@ -7,11 +7,11 @@ const isDev = process.env.NODE_ENV !== "production";
 // 'unsafe-inline' scripts stay because Next injects inline bootstrap scripts and no nonce is wired up.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' https://connect.facebook.net${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https://*.r2.cloudflarestorage.com",
-  `connect-src 'self' https://*.r2.cloudflarestorage.com${isDev ? " ws: wss:" : ""}`,
+  `connect-src 'self' https://*.r2.cloudflarestorage.com https://www.facebook.com https://connect.facebook.net${isDev ? " ws: wss:" : ""}`,
   "font-src 'self' data:",
   "worker-src 'self' blob:",
   "object-src 'none'",

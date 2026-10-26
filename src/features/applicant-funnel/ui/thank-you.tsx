@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import { StepBody } from "@/components/funnel";
 import { splitThankYou } from "../lib/thank-you";
+import { MetaPixel } from "./meta-pixel";
 
 /** A8. No buttons. */
 export function ThankYou({ text, firstName, replyDays }: { text: string; firstName: string; replyDays: number }) {
@@ -14,6 +15,7 @@ export function ThankYou({ text, firstName, replyDays }: { text: string; firstNa
         <h1 className="mt-[22px] text-[40px] leading-[0.98] md:text-[52px]">{heading}</h1>
         {body && <p className="mt-3.5 text-base leading-normal text-muted md:text-[17px]">{body}</p>}
       </div>
+      <MetaPixel />
     </StepBody>
   );
 }
