@@ -3,6 +3,7 @@ export type { FunnelApi, FunnelProject, FunnelSession, StartPayload, UploadUrls,
 export { parseSim, type MockSim } from "./api";
 export { pickTracking } from "./lib/utm";
 export { FunnelFlow } from "./ui/funnel-flow";
+export { ThankYouPage } from "./ui/thank-you-page";
 export { FunnelNotice } from "./ui/funnel-notice";
 export { HandoffLanding } from "./ui/handoff-landing";
 export { DevReview } from "./ui/dev-review";

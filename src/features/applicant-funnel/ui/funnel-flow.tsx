@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { FunnelShell } from "@/components/funnel";
 import { getFunnelApi, type MockSim } from "../api";
@@ -13,7 +14,6 @@ import { FunnelSkeleton } from "./funnel-skeleton";
 import { InAppScreen } from "./in-app-screen";
 import { blankFormValues } from "./initial-values";
 import { TaskStep } from "./task-step";
-import { ThankYou } from "./thank-you";
 import { useBrowserLocale } from "./use-user-agent";
 import { VideoStep } from "./video-step";
 
@@ -23,6 +23,7 @@ export function FunnelFlow({ project, tracking, sim, videoStub }: { project: Fun
   const [api] = useState(() => getFunnelApi(sim));
   const locale = useBrowserLocale();
   const slug = project.slug;
+  const router = useRouter();
 
   useEffect(() => {
     const saved = loadFlow(slug);
@@ -48,6 +49,11 @@ export function FunnelFlow({ project, tracking, sim, videoStub }: { project: Fun
   }, [slug, state]);
 
   const { step, session } = state;
+
+  // The thank you screen is its own page (the Meta Pixel lives there). The save effect above runs first, so the thanks page finds the finished flow.
+  useEffect(() => {
+    if (step === "done") router.replace(`/a/${slug}/thanks`);
+  }, [step, slug, router]);
 
   // A new step is a new page: start at the top and put focus on its heading.
   const lastStep = useRef(step);
@@ -91,7 +97,7 @@ export function FunnelFlow({ project, tracking, sim, videoStub }: { project: Fun
         />
       )}
       {step === "task" && session && <TaskStep project={project} session={session} api={api} onDone={() => dispatch({ type: "taskDone" })} />}
-      {step === "done" && <ThankYou text={project.thankYouText} firstName={state.firstName} replyDays={project.replyDays} />}
+      {step === "done" && <FunnelSkeleton />}
     </FunnelShell>
   );
 }
