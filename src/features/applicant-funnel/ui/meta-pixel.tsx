@@ -2,7 +2,7 @@ import Script from "next/script";
 
 const PIXEL_ID = "824413992558640";
 
-/** Meta Pixel. Rendered on the thank you screen only, so it fires one PageView there. */
+/** Meta Pixel. Rendered on the thank you screen only, so PageView and SubmitApplication fire once there. */
 export function MetaPixel() {
   return (
     <>
@@ -16,7 +16,8 @@ t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '${PIXEL_ID}');
-fbq('track', 'PageView');`}
+fbq('track', 'PageView');
+fbq('track', 'SubmitApplication');`}
       </Script>
       <noscript>
         {/* eslint-disable-next-line @next/next/no-img-element */}
