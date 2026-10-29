@@ -57,7 +57,7 @@ jobs:
         run: pnpm exec playwright test -c playwright.devices.e2e.config.ts
       - name: Upload the HTML report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: devices-e2e-report-${{ matrix.os }}
           path: playwright-report-devices-e2e
@@ -65,7 +65,7 @@ jobs:
           retention-days: 14
       - name: Upload screenshots and traces
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: devices-e2e-screenshots-${{ matrix.os }}
           path: test-results-devices-e2e
