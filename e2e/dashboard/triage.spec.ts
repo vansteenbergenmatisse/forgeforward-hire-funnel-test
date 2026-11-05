@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import * as schema from "../../src/platform/db/schema";
 import { cleanup, createProject, insertApplicant, signIn, stageOf, testDb, type E2eProject } from "./helpers";
 
-// Keyboard triage and the answer filter. These run against `next dev`, where the triage keys are on.
+// Keyboard triage and the answer filter.
 let project: E2eProject;
 let questionId: string;
 const GOOD_NAME = "Good profile + english, invite interview";
@@ -120,4 +120,20 @@ test("applicants already in another stage are never moved, and typing in notes d
   await page.keyboard.press("ArrowRight");
   await page.waitForTimeout(500);
   expect(await stageOf(fresh.id)).toBe(newStage().id);
+});
+
+test("opening any applicant starts the video, not only those in New", async ({ page }) => {
+  await signIn(page);
+  await page.addInitScript(() => {
+    (window as unknown as { __plays: number }).__plays = 0;
+    const orig = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () {
+      (window as unknown as { __plays: number }).__plays += 1;
+      return orig.call(this).catch(() => undefined) as Promise<void>;
+    };
+  });
+  const interviewed = await insertApplicant(project, stageByName("Interviewed").id, "autoplay", { videoKey: "test/e2e/autoplay.webm", videoMime: "video/webm", videoSeconds: 5 });
+  await page.goto(`/adminMatt/p/${project.slug}?a=${interviewed.id}`);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __plays: number }).__plays)).toBeGreaterThanOrEqual(1);
 });

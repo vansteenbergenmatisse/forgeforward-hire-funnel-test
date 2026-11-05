@@ -16,6 +16,3 @@ export function nextAfter<T extends { id: string }>(list: T[], currentId: string
   if (i === -1) return null;
   return list[i + 1] ?? list[i - 1] ?? null;
 }
-
-/** Triage keys are a localhost tool. The check is inlined at build time, so production bundles drop the feature. */
-export const TRIAGE_ENABLED = process.env.NODE_ENV !== "production";

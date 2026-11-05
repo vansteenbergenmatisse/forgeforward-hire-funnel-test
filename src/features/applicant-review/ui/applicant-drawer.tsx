@@ -21,7 +21,7 @@ import { TimelineBlock } from "./timeline-block";
 import { TriageHint } from "./triage-hint";
 import { useTriageKeys } from "./use-triage-keys";
 
-export function ApplicantDrawer({ applicantId, projectSlug, onClose, initialSendChannel, autoPlay, triage }: ApplicantDrawerProps) {
+export function ApplicantDrawer({ applicantId, projectSlug, onClose, initialSendChannel, triage }: ApplicantDrawerProps) {
   const { applicants, actions } = useApplicants();
   const { state } = useProjects();
   const [sendChannel, setSendChannel] = useState<Channel | null>(initialSendChannel ?? null);
@@ -78,7 +78,7 @@ export function ApplicantDrawer({ applicantId, projectSlug, onClose, initialSend
           {/* Keyed so the next applicant opens at the top with a fresh player. */}
           <div key={a.id} className="min-h-0 flex-1 overflow-y-auto">
             <div className="space-y-3 px-6 py-5">
-              <Player media={a.media} name={a.firstName} autoPlay={autoPlay || triageLive} />
+              <Player media={a.media} name={a.firstName} autoPlay />
               {a.media && !a.media.deletedAt && (
                 <p className="text-[13px] text-muted">
                   {a.retakeUsed && "Retake used. "}

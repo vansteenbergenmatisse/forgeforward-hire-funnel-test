@@ -6,9 +6,9 @@ export type ApplicantDrawerProps = {
   onClose: () => void;
   /** Opens the send modal on this channel when the drawer mounts (`?send=whatsapp`). */
   initialSendChannel?: Channel;
-  /** Starts playback when the drawer opens from a card's play icon (`?play=1`). */
+  /** Kept for the `?play=1` link. The drawer now starts the video on every open. */
   autoPlay?: boolean;
-  /** Localhost triage: arrow keys reject or keep an applicant who is in New, then the screen opens the next one. Left out when off. */
+  /** Triage: arrow keys reject or keep an applicant who is in New, then the screen opens the next one. Left out when off. */
   triage?: {
     /** Missing when the project has no Rejected stage. */
     onReject?: (applicantId: string) => void;
