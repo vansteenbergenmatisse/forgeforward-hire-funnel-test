@@ -27,6 +27,7 @@ import { primaryQuestion } from "../logic/card-text";
 import { loadErrorText } from "../logic/load-messages";
 import { pipelineHref, type PipelineTab } from "../logic/tabs";
 import { DEFAULT_TABLE_SORT, sortTableRows, type TableSort } from "../logic/table-sort";
+import { TRIAGE_ENABLED, findGoodStage, findRejectedStage, nextAfter } from "../logic/triage";
 import { useMounted } from "../use-mounted";
 import { useNow } from "../use-now";
 import { ApplicantsTable } from "./applicants-table";
@@ -98,6 +99,27 @@ function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, showTe
 
   const drawerApplicant = applicantId ? applicants.find((a) => a.id === applicantId) : undefined;
 
+  // Localhost triage from the Board. Only someone still in New can be moved, so applicants you already worked on never change.
+  const newStage = stages.find((s) => s.role === "entry_new");
+  const goodStage = findGoodStage(stages);
+  const rejectedStage = findRejectedStage(stages);
+  const triageMove = (id: string, stageId: string) => {
+    if (!newStage) return;
+    const queue = boardCards.filter((a) => a.stageId === newStage.id);
+    if (!queue.some((a) => a.id === id)) return;
+    const next = nextAfter(queue, id);
+    actions.moveToStage(id, stageId);
+    if (next) open(next.id);
+    else close();
+  };
+  const triage =
+    TRIAGE_ENABLED && tab === "board" && newStage
+      ? {
+          onReject: rejectedStage ? (id: string) => triageMove(id, rejectedStage.id) : undefined,
+          onGood: goodStage ? (id: string) => triageMove(id, goodStage.id) : undefined,
+        }
+      : undefined;
+
   const tableSortValue = tableSort.dir === "desc" && tableSort.key === "applied" ? "newest" : tableSort.dir === "desc" && tableSort.key === "score" ? "score" : "custom";
   const sortProps =
     tab === "table"
@@ -167,6 +189,7 @@ function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, showTe
         <Toolbar
           filters={filters}
           onFilters={setFilters}
+          questions={questions}
           summary={tab === "table" ? <span aria-live="polite">Rows: {tableRows.length} &middot;</span> : undefined}
           {...sortProps}
         />
@@ -189,7 +212,7 @@ function ProjectPipeline({ slug, tab, applicantId, sendChannel, autoPlay, showTe
             <NoMatches onClear={clearFilters} />
           ))}
       </main>
-      {drawerApplicant && <ApplicantDrawer applicantId={drawerApplicant.id} projectSlug={slug} onClose={close} initialSendChannel={sendChannel} autoPlay={autoPlay} />}
+      {drawerApplicant && <ApplicantDrawer applicantId={drawerApplicant.id} projectSlug={slug} onClose={close} initialSendChannel={sendChannel} autoPlay={autoPlay} triage={triage} />}
     </AdminShell>
   );
 }

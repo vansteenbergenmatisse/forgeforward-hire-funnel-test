@@ -7,12 +7,14 @@ import { hashToken } from "@/shared/token-hash";
 import { CONSENT_TEXT, startSchema } from "../schemas";
 import { buildAnswers } from "./answers";
 import { isTestConsole, TEST_CONSOLE_HEADER } from "./bypass";
+import { hasFinishedApplication } from "./duplicate";
 import { ApiError } from "./errors";
 import { parseBody } from "./http";
 import { once, type StoredCodec } from "./idempotency";
 import { loadProjectRow } from "./project";
 import { clientIp, ipBucket, limitStore } from "./rate-limit";
 import { seal, unseal } from "./seal";
+import { makeShadowToken } from "./shadow";
 
 const WINDOW_MS = 10 * 60_000;
 function maxPerWindow() {
@@ -66,6 +68,12 @@ export async function startApplication(req: Request, body: unknown, key: string)
     // Charged only once the application is valid, so a mistyped form never uses up an attempt.
     if (!bypass && !(await takeRateLimit(limitStore(), ipBucket("start", ip), { max: maxPerWindow(), windowMs: WINDOW_MS }))) {
       throw new ApiError(429, "rate_limited", "Too many tries. Wait a few minutes and try again.");
+    }
+
+    // This phone number already finished this project. They see every step and the thank you page, nothing is saved.
+    // Test console runs skip the check so the same test number can be used again and again.
+    if (!bypass && (await hasFinishedApplication(project.id, input.phoneE164))) {
+      return { applicant_id: randomUUID(), resume_token: makeShadowToken("resume", project.slug) };
     }
 
     const [previous] = await db()

@@ -115,7 +115,8 @@ test("a task saved with Tiptap shows in the funnel", async ({ page, browser }) =
   await visitor.getByLabel("First name", { exact: true }).fill("Task");
   await visitor.getByLabel("Last name", { exact: true }).fill("Viewer");
   await visitor.getByLabel("Email", { exact: true }).fill(`e2e-task-${Date.now()}@example.test`);
-  await visitor.getByLabel("Phone", { exact: true }).fill("(415) 555-2671");
+  // Its own number: a number that already finished this project is dropped silently, and this test deletes its own row.
+  await visitor.getByLabel("Phone", { exact: true }).fill("(415) 555-0147");
   await visitor.getByText("Yes", { exact: true }).first().click();
   await visitor.getByText("I agree that Forge Forward").click();
   await visitor.getByRole("button", { name: /Next: your video/ }).click();

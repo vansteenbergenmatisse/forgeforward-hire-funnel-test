@@ -4,6 +4,8 @@ import { db, tables } from "@/platform/db";
 import { deleteObject, headObject } from "@/platform/r2";
 import { requireApplicant, addEvent } from "./applicant";
 import { ApiError } from "./errors";
+import { loadProjectRow } from "./project";
+import { readShadowToken, shadowKeyDir, type Shadow } from "./shadow";
 import { finishApplication } from "./task";
 import { base, keyDir, MAX_VIDEO_BYTES, VIDEO_MIMES } from "./uploads";
 
@@ -18,8 +20,20 @@ export const videoCompleteSchema = z.object({
   retakeUsed: z.boolean(),
 });
 
+/** A shadow applicant "saves" the video: it is checked like a real one, then deleted from R2 right away. Nothing is written to the database. */
+async function completeShadowVideo(input: z.output<typeof videoCompleteSchema>, shadow: Shadow) {
+  const project = await loadProjectRow(shadow.slug);
+  if (!project) throw new ApiError(404, "not_found");
+  if (input.seconds > project.maxRecordSeconds + 10) throw new ApiError(400, "invalid", "Video is too long");
+  if (!input.key.startsWith(shadowKeyDir("videos", shadow))) throw new ApiError(400, "invalid", "Wrong video key");
+  if (input.thumbKey && !input.thumbKey.startsWith(shadowKeyDir("thumbs", shadow))) throw new ApiError(400, "invalid", "Wrong thumbnail key");
+  for (const k of [input.key, input.thumbKey]) if (k) await deleteObject(k).catch(() => {});
+}
+
 /** Confirms the object exists in R2 with the byte count the browser reports, then saves the video fields. */
 export async function completeVideo(input: z.output<typeof videoCompleteSchema>) {
+  const shadow = readShadowToken(input.resumeToken, "resume");
+  if (shadow) return completeShadowVideo(input, shadow);
   const { applicant, project } = await requireApplicant(input.resumeToken);
   // A finished application is final. A token cannot swap the video afterwards.
   if (applicant.funnelStep === "completed") {

@@ -22,13 +22,16 @@ const ipOf = (n: number) => `203.0.113.${n}-${suffix}`;
 function startReq(ip: string, headers: Record<string, string> = {}) {
   return new Request("http://x/api/apply/start", { method: "POST", headers: { "x-forwarded-for": ip, ...headers } });
 }
+// A phone number that already finished this project is dropped silently, so each payload gets its own number by default.
+let phoneCounter = 0;
+const nextPhone = () => `(415) 555-01${String(phoneCounter++ % 100).padStart(2, "0")}`;
 function payload(over: Record<string, unknown> = {}) {
   return {
     projectSlug: slug,
     firstName: "Sam",
     lastName: "Rivera",
     email: `sam-${suffix}@example.com`,
-    phone: "(415) 555-2671",
+    phone: nextPhone(),
     phoneCountry: "US",
     whatsappOk: true,
     timezone: "America/New_York",
@@ -76,8 +79,9 @@ describe.skipIf(!haveDb)("funnel api", () => {
 
   it("starts an application, once per idempotency key, and links a repeat applicant", async () => {
     const key = `key-${crypto.randomUUID()}`;
-    const first = (await api.startApplication(startReq(ipOf(1)), payload(), key)) as { applicant_id: string; resume_token: string };
-    const replay = await api.startApplication(startReq(ipOf(1)), payload(), key);
+    const body = payload();
+    const first = (await api.startApplication(startReq(ipOf(1)), body, key)) as { applicant_id: string; resume_token: string };
+    const replay = await api.startApplication(startReq(ipOf(1)), body, key);
     expect(replay).toEqual(first);
     const rows = await db().select().from(tables.applicants).where(eq(tables.applicants.projectId, projectId));
     expect(rows).toHaveLength(1);
@@ -88,10 +92,40 @@ describe.skipIf(!haveDb)("funnel api", () => {
     const events = await db().select().from(tables.applicantEvents).where(eq(tables.applicantEvents.applicantId, first.applicant_id));
     expect(events.map((e) => e.type)).toEqual(["form_submitted"]);
 
-    const second = (await api.startApplication(startReq(ipOf(2)), payload(), `key-${crypto.randomUUID()}`)) as { applicant_id: string };
+    // Same email and same phone, but the first one never finished, so this one is saved and linked.
+    const second = (await api.startApplication(startReq(ipOf(2)), payload({ phone: body.phone }), `key-${crypto.randomUUID()}`)) as { applicant_id: string };
     const [again] = await db().select().from(tables.applicants).where(eq(tables.applicants.id, second.applicant_id));
     expect(again.appliedBefore).toBe(true);
     expect(again.previousApplicantId).toBe(first.applicant_id);
+  });
+
+  it("drops a phone number that already finished, saves one that only quit halfway", async () => {
+    const phone = nextPhone();
+    const k = () => `key-${crypto.randomUUID()}`;
+    const count = async () => (await db().select().from(tables.applicants).where(eq(tables.applicants.projectId, projectId))).length;
+    const a = (await api.startApplication(startReq(ipOf(30)), payload({ phone, email: `dup-a-${suffix}@example.com` }), k())) as { applicant_id: string };
+
+    // Quit halfway: the same number can apply again and is saved.
+    const b = (await api.startApplication(startReq(ipOf(31)), payload({ phone: phone.replace("(415) ", "+1 415 "), email: `dup-b-${suffix}@example.com` }), k())) as { applicant_id: string; resume_token: string };
+    expect(b.resume_token.startsWith("shadow.")).toBe(false);
+    const saved = await count();
+
+    // Once one has finished, the same number gets a shadow session and nothing is stored.
+    await db().update(tables.applicants).set({ funnelStep: "completed", completedAt: new Date() }).where(eq(tables.applicants.id, a.applicant_id));
+    const c = (await api.startApplication(startReq(ipOf(32)), payload({ phone, email: `dup-c-${suffix}@example.com` }), k())) as { applicant_id: string; resume_token: string };
+    expect(c.resume_token.startsWith("shadow.")).toBe(true);
+    expect(await count()).toBe(saved);
+    expect(await db().select().from(tables.applicants).where(eq(tables.applicants.id, c.applicant_id))).toHaveLength(0);
+
+    // The shadow session answers every later step like a real one, and still writes nothing.
+    expect(await api.submitTask({ resumeToken: c.resume_token, skip: true }, k())).toEqual({ stage: "entry_new" });
+    await expect(api.completeVideo({ resumeToken: c.resume_token, key: "videos/x/y.webm", mime: "video/webm", bytes: 10, seconds: 3, audioOnly: false, retakeUsed: false })).rejects.toMatchObject({ status: 400 });
+    expect(await count()).toBe(saved);
+
+    // The test console can reuse a number.
+    const header = { [api.TEST_CONSOLE_HEADER]: api.signTestConsole(process.env.ADMIN_KEY as string) };
+    const t = (await api.startApplication(startReq(ipOf(33), header), payload({ phone, email: `dup-t-${suffix}@example.com` }), k())) as { resume_token: string };
+    expect(t.resume_token.startsWith("shadow.")).toBe(false);
   });
 
   it("rejects bad answers, unknown and closed projects", async () => {
@@ -189,9 +223,13 @@ describe.skipIf(!haveDb)("funnel api", () => {
       await db().update(tables.applicants).set({ funnelStep: "video_done" }).where(eq(tables.applicants.id, s.applicant_id));
       expect(await api.submitTask({ resumeToken: s.resume_token, skip: true }, `key-${crypto.randomUUID()}`)).toEqual({ stage: "entry_new" });
       await api.logClientEvent({ type: `upload_failed_${suffix}`, data: { status: 500 }, resumeToken: s.resume_token });
-      const [e] = await db().select().from(tables.systemErrors).where(eq(tables.systemErrors.message, `upload_failed_${suffix}`));
-      expect(e.applicantId).toBe(s.applicant_id);
-      await db().delete(tables.systemErrors).where(eq(tables.systemErrors.message, `upload_failed_${suffix}`));
+      try {
+        const [e] = await db().select().from(tables.systemErrors).where(eq(tables.systemErrors.message, `upload_failed_${suffix}`));
+        expect(e.applicantId).toBe(s.applicant_id);
+      } finally {
+        // Also when the check fails: a left row shows up as a red banner on the test dashboard.
+        await db().delete(tables.systemErrors).where(eq(tables.systemErrors.message, `upload_failed_${suffix}`));
+      }
     });
   });
 });

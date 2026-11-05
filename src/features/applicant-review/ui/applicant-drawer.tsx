@@ -18,8 +18,10 @@ import { Player } from "./player";
 import { ScoreNotes } from "./score-notes";
 import { TaskBlock } from "./task-block";
 import { TimelineBlock } from "./timeline-block";
+import { TriageHint } from "./triage-hint";
+import { useTriageKeys } from "./use-triage-keys";
 
-export function ApplicantDrawer({ applicantId, projectSlug, onClose, initialSendChannel, autoPlay }: ApplicantDrawerProps) {
+export function ApplicantDrawer({ applicantId, projectSlug, onClose, initialSendChannel, autoPlay, triage }: ApplicantDrawerProps) {
   const { applicants, actions } = useApplicants();
   const { state } = useProjects();
   const [sendChannel, setSendChannel] = useState<Channel | null>(initialSendChannel ?? null);
@@ -49,6 +51,13 @@ export function ApplicantDrawer({ applicantId, projectSlug, onClose, initialSend
 
   const keepDays = a ? videoDeletesInDays(a, stages, new Date()) : null;
 
+  // Only for someone still in New. Once moved, the optimistic update switches the keys off until the next applicant opens.
+  const triageLive = Boolean(triage && a && !sendChannel && stages.find((s) => s.id === a.stageId)?.role === "entry_new");
+  useTriageKeys(triageLive, {
+    onReject: triage?.onReject ? () => a && triage.onReject?.(a.id) : undefined,
+    onGood: triage?.onGood ? () => a && triage.onGood?.(a.id) : undefined,
+  });
+
   return (
     <DrawerShell onClose={sendChannel ? backToApplicant : onClose} labelledBy={sendChannel ? "send-title" : "drawer-title"}>
       {!a ? (
@@ -65,9 +74,11 @@ export function ApplicantDrawer({ applicantId, projectSlug, onClose, initialSend
       ) : (
         <>
           <DrawerHeader a={a} stages={stages} onMove={(id) => (a.stageId === null ? actions.placeOnBoard(a.id, id) : actions.moveToStage(a.id, id))} onClose={onClose} />
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          {triageLive && <TriageHint rejectAvailable={Boolean(triage?.onReject)} goodAvailable={Boolean(triage?.onGood)} />}
+          {/* Keyed so the next applicant opens at the top with a fresh player. */}
+          <div key={a.id} className="min-h-0 flex-1 overflow-y-auto">
             <div className="space-y-3 px-6 py-5">
-              <Player media={a.media} name={a.firstName} autoPlay={autoPlay} />
+              <Player media={a.media} name={a.firstName} autoPlay={autoPlay || triageLive} />
               {a.media && !a.media.deletedAt && (
                 <p className="text-[13px] text-muted">
                   {a.retakeUsed && "Retake used. "}

@@ -1,10 +1,12 @@
 import { and, eq, ne } from "drizzle-orm";
 import { db, tables } from "@/platform/db";
-import { headObject } from "@/platform/r2";
+import { deleteObject, headObject } from "@/platform/r2";
 import { taskSchema } from "../schemas";
 import { addEvent, requireApplicant } from "./applicant";
 import { ApiError } from "./errors";
 import { once } from "./idempotency";
+import { loadProjectRow } from "./project";
+import { readShadowToken, shadowKeyDir, type Shadow } from "./shadow";
 import { keyDir, MAX_TASK_FILE_BYTES } from "./uploads";
 
 export type TaskInput = ReturnType<typeof taskSchema.parse>;
@@ -35,9 +37,24 @@ export async function finishApplication(applicantId: string, projectId: string, 
   });
 }
 
+/** A shadow applicant gets the same answer a real one would. A task file they uploaded is deleted, nothing is saved. */
+async function submitShadowTask(input: TaskInput, shadow: Shadow): Promise<{ stage: StageRole }> {
+  const project = await loadProjectRow(shadow.slug);
+  if (!project) throw new ApiError(404, "not_found");
+  const submitting = !input.skip && project.taskEnabled;
+  if (submitting && input.fileKey) {
+    if (!project.taskAllowFile) throw new ApiError(400, "invalid", "File uploads are off");
+    if (!input.fileKey.startsWith(shadowKeyDir("tasks", shadow))) throw new ApiError(400, "invalid", "Wrong file key");
+    await deleteObject(input.fileKey).catch(() => {});
+  }
+  return { stage: submitting ? "entry_task" : "entry_new" };
+}
+
 /** Submit or skip the optional task. Moves the applicant to the entry stage and marks the application completed. */
 export function submitTask(input: TaskInput, key: string): Promise<{ stage: StageRole }> {
   return once("task", key, async () => {
+    const shadow = readShadowToken(input.resumeToken, "resume");
+    if (shadow) return submitShadowTask(input, shadow);
     const { applicant, project } = await requireApplicant(input.resumeToken);
     if (applicant.funnelStep === "form_done") throw new ApiError(409, "video_first", "Finish the video first.");
 

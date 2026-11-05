@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import type { ApplicantFilters } from "@/features/applicants";
+import type { QuestionDef } from "@/features/projects";
+import { AnswerFilter } from "./answer-filter";
 import { DateFilter } from "./date-filter";
 import { FilterChip } from "./filter-chip";
 import { ScoreFilter } from "./score-filter";
@@ -12,6 +14,8 @@ export type SortOption = { value: string; label: string };
 type Props = {
   filters: ApplicantFilters;
   onFilters: (f: ApplicantFilters) => void;
+  /** The project's questions. Each live choice question gets its own filter chip. */
+  questions?: QuestionDef[];
   sortValue: string;
   sortOptions: SortOption[];
   onSort: (value: string) => void;
@@ -20,8 +24,10 @@ type Props = {
 };
 
 /** Search, filter chips and sort. Shared by Board, Did not finish and Table. */
-export function Toolbar({ filters, onFilters, sortValue, sortOptions, onSort, summary }: Props) {
+export function Toolbar({ filters, onFilters, questions = [], sortValue, sortOptions, onSort, summary }: Props) {
   const set = (patch: Partial<ApplicantFilters>) => onFilters({ ...filters, ...patch });
+  const choiceQuestions = questions.filter((q) => q.type === "single_choice" && !q.archived && q.options.length > 0);
+  const setPicks = (qid: string, picks: string[]) => set({ answers: { ...filters.answers, [qid]: picks } });
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2" role="search">
       <div className="relative w-[300px] max-w-full">
@@ -53,6 +59,9 @@ export function Toolbar({ filters, onFilters, sortValue, sortOptions, onSort, su
       <FilterChip on={Boolean(filters.appliedBefore)} onClick={() => set({ appliedBefore: !filters.appliedBefore })}>
         Applied before
       </FilterChip>
+      {choiceQuestions.map((q) => (
+        <AnswerFilter key={q.id} question={q} picked={filters.answers?.[q.id] ?? []} onChange={(picks) => setPicks(q.id, picks)} />
+      ))}
       <ScoreFilter value={filters.minScore} onChange={(minScore) => set({ minScore })} />
       <DateFilter from={filters.from} to={filters.to} onChange={(r) => set(r)} />
       <div className="ml-auto flex items-center gap-2 text-[13px] text-muted">

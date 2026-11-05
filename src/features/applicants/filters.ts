@@ -12,6 +12,8 @@ export type ApplicantFilters = {
   /** Inclusive days as YYYY-MM-DD from the date picker. They are days in the admin's own time zone. */
   from?: string | null;
   to?: string | null;
+  /** Picked options per question id. An applicant matches a question when their answer is one of its picks. Questions with no picks are ignored. */
+  answers?: Record<string, string[]>;
   /** Admin-only `?test=1` on the board: show is_test applicants (the end-to-end device check creates them). Off by default. */
   showTest?: boolean;
 };
@@ -48,6 +50,15 @@ function inDateRange(createdAt: string, from?: string | null, to?: string | null
   return true;
 }
 
+function matchesAnswers(a: ApplicantView, picks: Record<string, string[]> | undefined): boolean {
+  if (!picks) return true;
+  return Object.entries(picks).every(([qid, options]) => {
+    if (options.length === 0) return true;
+    const value = a.answers[qid]?.value;
+    return typeof value === "string" && options.includes(value);
+  });
+}
+
 export function filterApplicants(list: ApplicantView[], f: ApplicantFilters): ApplicantView[] {
   return list.filter((a) => {
     if (a.isTest && !f.showTest) return false;
@@ -56,6 +67,7 @@ export function filterApplicants(list: ApplicantView[], f: ApplicantFilters): Ap
     if (f.audioOnly && !a.audioOnly) return false;
     if (f.appliedBefore && !a.appliedBefore) return false;
     if (f.minScore && (a.score === null || a.score < f.minScore)) return false;
+    if (!matchesAnswers(a, f.answers)) return false;
     return inDateRange(a.createdAt, f.from, f.to);
   });
 }
@@ -69,5 +81,6 @@ export function sortApplicants(list: ApplicantView[], key: SortKey): ApplicantVi
 }
 
 export function hasActiveFilters(f: ApplicantFilters): boolean {
-  return Boolean(f.search?.trim() || f.didTask || f.audioOnly || f.appliedBefore || f.minScore || f.from || f.to);
+  const answerPicks = Object.values(f.answers ?? {}).some((options) => options.length > 0);
+  return Boolean(f.search?.trim() || f.didTask || f.audioOnly || f.appliedBefore || f.minScore || f.from || f.to || answerPicks);
 }

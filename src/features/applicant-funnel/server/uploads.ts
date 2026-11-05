@@ -5,7 +5,9 @@ import { takeRateLimit } from "@/shared/rate-limit";
 import type { UploadUrls } from "../types";
 import { requireApplicant } from "./applicant";
 import { ApiError } from "./errors";
+import { loadProjectRow } from "./project";
 import { limitStore } from "./rate-limit";
+import { readShadowToken, shadowKeyDir, type Shadow } from "./shadow";
 
 export const MAX_TASK_FILE_BYTES = 25 * 1024 * 1024;
 export const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
@@ -55,7 +57,33 @@ export function keyDir(kind: "videos" | "thumbs" | "tasks", slug: string, applic
   return withPrefix(`${kind}/${slug}/${applicantId}/`);
 }
 
+/** Same checks and same shape as a real session, but the files land under shadow/ and are deleted when the applicant finishes. */
+async function createShadowUploadUrls(input: z.output<typeof uploadUrlSchema>, shadow: Shadow): Promise<UploadUrls> {
+  const project = await loadProjectRow(shadow.slug);
+  if (!project) throw new ApiError(404, "not_found");
+  const stamp = Date.now();
+
+  if (input.kind === "video") {
+    if (!VIDEO_MIMES.has(base(input.mime))) throw new ApiError(400, "invalid", "Unsupported video type");
+    if (input.bytes > MAX_VIDEO_BYTES) throw new ApiError(400, "too_large", "That video is too large.");
+    const key = `${shadowKeyDir("videos", shadow)}${stamp}.${extFor(input.mime)}`;
+    const putUrl = await signedPutUrl(key, input.mime, { contentLength: input.bytes });
+    if (!input.withThumb) return { key, putUrl };
+    if (!input.thumbBytes || input.thumbBytes > MAX_THUMB_BYTES) throw new ApiError(400, "invalid", "Unsupported thumbnail size");
+    const thumbKey = `${shadowKeyDir("thumbs", shadow)}${stamp}.jpg`;
+    return { key, putUrl, thumbKey, thumbPutUrl: await signedPutUrl(thumbKey, "image/jpeg", { contentLength: input.thumbBytes }) };
+  }
+
+  if (!project.taskEnabled || !project.taskAllowFile) throw new ApiError(403, "file_not_allowed");
+  if (!TASK_MIMES.has(base(input.mime))) throw new ApiError(400, "invalid", "Unsupported file type");
+  if (input.bytes > MAX_TASK_FILE_BYTES) throw new ApiError(400, "too_large", "That file is too large.");
+  const key = `${shadowKeyDir("tasks", shadow)}${randomBytes(4).toString("hex")}-${safeFilename(input.filename)}`;
+  return { key, putUrl: await signedPutUrl(key, input.mime, { contentLength: input.bytes }) };
+}
+
 export async function createUploadUrls(input: z.output<typeof uploadUrlSchema>): Promise<UploadUrls> {
+  const shadow = readShadowToken(input.resumeToken, "resume");
+  if (shadow) return createShadowUploadUrls(input, shadow);
   const { applicant, project } = await requireApplicant(input.resumeToken);
   // Each call signs fresh keys. A cap per applicant stops one token from filling storage.
   if (!(await takeRateLimit(limitStore(), `upload:${applicant.id}`, { max: 20, windowMs: 10 * 60_000 }))) {

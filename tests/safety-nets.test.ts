@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray } from "drizzle-orm";
 import { closeDb, db, tables } from "@/platform/db";
 import { hashToken } from "@/shared/token-hash";
 import { deleteObject, headObject, putObject, withPrefix } from "@/platform/r2";
@@ -62,6 +62,8 @@ describe.skipIf(!haveDb || !haveR2)("retention, integrity and banners against th
   let stagePositive = "";
   let stageRejected = "";
 
+  const startedAt = new Date();
+
   beforeAll(async () => {
     const [p] = await db().insert(tables.projects).values({ slug: run, name: run, videoPrompt: "x", thankYouText: "x" }).returning({ id: tables.projects.id });
     projectId = p.id;
@@ -99,6 +101,9 @@ describe.skipIf(!haveDb || !haveR2)("retention, integrity and banners against th
   afterAll(async () => {
     const mine = Object.values(ids);
     await db().delete(tables.systemErrors).where(inArray(tables.systemErrors.applicantId, mine));
+    // The integrity check looks at every applicant in the database, not only ours, so it also records rows for other
+    // tests' applicants. Those rows would stay as red banners on the test dashboard, so remove what this run recorded.
+    await db().delete(tables.systemErrors).where(and(eq(tables.systemErrors.source, "integrity"), gte(tables.systemErrors.createdAt, startedAt)));
     await db().delete(tables.projects).where(eq(tables.projects.id, projectId)); // cascades applicants, events
     for (const k of keys) await deleteObject(k).catch(() => undefined);
   });

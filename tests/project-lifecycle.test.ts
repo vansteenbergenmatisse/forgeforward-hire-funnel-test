@@ -13,6 +13,7 @@ process.env.ADMIN_KEY ||= "t".repeat(48);
 const suffix = crypto.randomUUID().slice(0, 8);
 const T = tables;
 const created: string[] = [];
+const seededApplicantIds: string[] = [];
 const r2Keys: string[] = [];
 
 type Seeded = { id: string; slug: string; applicantIds: string[]; videoKeys: string[]; strayKey: string; stageId: string };
@@ -53,6 +54,7 @@ async function seed(label: string, applicantCount: number): Promise<Seeded> {
     await db().insert(T.messages).values({ applicantId: id, channel: "email", direction: "out", body: "hi", status: "sent", templateId: tpl.id });
     await db().insert(T.systemErrors).values({ source: "t", message: "m", applicantId: id });
     applicantIds.push(id);
+    seededApplicantIds.push(id);
     videoKeys.push(videoKey);
   }
   // An upload that never reached an applicant row: only the slug folder sweep can find it.
@@ -81,6 +83,9 @@ describe.skipIf(!haveDb)("project lifecycle against the test database", { timeou
   afterAll(async () => {
     for (const k of r2Keys) await deleteObject(k).catch(() => {});
     if (created.length) await db().delete(T.projects).where(inArray(T.projects.id, created));
+    // system_errors has no foreign key to applicants, so deleting the project leaves these rows (and any integrity rows
+    // another test file recorded for them) behind as red banners on the test dashboard.
+    if (seededApplicantIds.length) await db().delete(T.systemErrors).where(inArray(T.systemErrors.applicantId, seededApplicantIds));
     await db().delete(T.adminAudit).where(and(eq(T.adminAudit.targetType, "project"), inArray(T.adminAudit.targetId, created.map((_, i) => `lc-x-${i}`))));
     await closeDb();
   });
