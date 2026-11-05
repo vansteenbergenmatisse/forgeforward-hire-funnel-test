@@ -1,11 +1,12 @@
 import { createHmac, hkdfSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { withPrefix } from "@/platform/r2";
+import { SHADOW_PREFIX } from "../lib/shadow-token";
 
 // A "shadow" session is what an applicant gets when their phone number already finished this project's application.
 // They walk through every step and see the thank you page, but nothing about them is saved. The session is a signed
 // token with no database row behind it, so a later step recognises it by the signature alone.
 
-const PREFIX = "shadow.";
+const PREFIX = SHADOW_PREFIX;
 const INFO = "funnel-shadow-session-v1";
 
 let ephemeral: string | undefined;

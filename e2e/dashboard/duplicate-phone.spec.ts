@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { expect, test, type APIRequestContext } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import { and, eq } from "drizzle-orm";
 import * as schema from "../../src/platform/db/schema";
+import { allowR2Puts } from "../funnel/helpers";
 import { cleanup, createProject, insertApplicant, signIn, testDb, type E2eProject } from "./helpers";
 
 // Needs the dashboard server started with FUNNEL_RATE_LIMIT_MAX=200 (several /start calls come from one address).
@@ -100,4 +101,52 @@ test("the same phone number can apply to a different project", async ({ request 
   const { body } = await start(request, two.slug, email, PHONE);
   expect(body.resume_token.startsWith("shadow.")).toBe(false);
   expect(await rowsFor(two.id, email)).toHaveLength(1);
+});
+
+// The thank you page loads the Meta Pixel for a new application only. A repeat applicant sees the same page, no pixel.
+async function applyThroughUi(page: Page, slug: string, email: string, phone: string) {
+  // Never send a real event to Facebook from a test.
+  await page.route(/facebook\.com|facebook\.net/, (route) => route.abort());
+  await allowR2Puts(page);
+  await page.goto(`/a/${slug}?video=stub`);
+  await page.getByLabel("First name", { exact: true }).fill("Pixel");
+  await page.getByLabel("Last name", { exact: true }).fill("Check");
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Phone", { exact: true }).fill(phone);
+  await page.getByText("Yes", { exact: true }).first().click();
+  await page.getByText("I agree that Forge Forward").click();
+  await page.getByRole("button", { name: /Next: your video/ }).click();
+  await page.getByRole("button", { name: "Pretend the video uploaded" }).click();
+  await expect(page).toHaveURL(new RegExp(`/a/${slug}/thanks`), { timeout: 20_000 });
+  await expect(page.getByRole("heading").first()).toBeVisible();
+}
+
+test("the Meta Pixel loads for a new application and stays off for a repeat applicant", async ({ browser }) => {
+  const project = (await browser.newPage().then(async (p) => {
+    await signIn(p);
+    const made = await createProject(p, "dup-pixel");
+    await p.close();
+    return made;
+  })) as E2eProject;
+  try {
+    await insertApplicant(project, project.stages[0].id, "pixelorig", { phoneE164: "+14155550177" });
+    const hasPixel = (page: Page) => page.evaluate(() => typeof (window as unknown as { fbq?: unknown }).fbq === "function" || Boolean(document.getElementById("meta-pixel")));
+
+    const fresh = await browser.newPage();
+    await applyThroughUi(fresh, project.slug, `e2e-pixel-new-${Date.now()}@example.test`, "(415) 555-0178");
+    await expect.poll(() => hasPixel(fresh)).toBe(true);
+    await fresh.close();
+
+    const repeat = await browser.newPage();
+    await applyThroughUi(repeat, project.slug, `e2e-pixel-dup-${Date.now()}@example.test`, "(415) 555-0177");
+    await repeat.waitForTimeout(2000);
+    expect(await hasPixel(repeat)).toBe(false);
+    await repeat.close();
+
+    // Only the first applicant and the new one are saved. The repeat is not.
+    const rows = await testDb().select().from(schema.applicants).where(eq(schema.applicants.projectId, project.id));
+    expect(rows.map((r) => r.phoneE164).sort()).toEqual(["+14155550177", "+14155550178"]);
+  } finally {
+    await cleanup([project]);
+  }
 });
