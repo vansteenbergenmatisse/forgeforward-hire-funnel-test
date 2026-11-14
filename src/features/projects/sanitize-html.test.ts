@@ -82,3 +82,15 @@ describe("readIntro", () => {
     expect(readIntro('<p onclick="x()">Hi <script>1</script></p>')).toBe("<p>Hi </p>");
   });
 });
+
+describe("links always open in a new tab", () => {
+  const input = '<p><a href="https://x.com">a</a> <a href="mailto:a@b.co" target="_self">b</a> <a href="tel:+1555" rel="opener">c</a></p>';
+  for (const [name, fn] of [["intro", sanitizeIntroHtml], ["task", sanitizeTaskHtml]] as const) {
+    it(`${name}: every link with an address gets target and rel`, () => {
+      const out = fn(input);
+      const links = out.match(/<a [^>]*>/g) ?? [];
+      expect(links).toHaveLength(3);
+      for (const l of links) expect(l).toMatch(/target="_blank" rel="noopener noreferrer"/);
+    });
+  }
+});
