@@ -1,6 +1,7 @@
 import { and, asc, eq, ne } from "drizzle-orm";
 import { db, tables } from "@/platform/db";
 import type { FunnelProject } from "../types";
+import { readIntro } from "@/features/projects/server";
 import { taskContentToHtml } from "./rich-text";
 
 type ProjectRow = typeof tables.projects.$inferSelect;
@@ -11,7 +12,7 @@ export function toFunnelProject(p: ProjectRow, qs: QuestionRow[]): FunnelProject
     slug: p.slug,
     name: p.name,
     status: p.status === "open" ? "open" : "closed",
-    intro: p.intro,
+    intro: readIntro(p.intro),
     calLink: p.calLink,
     videoPrompt: p.videoPrompt,
     prepSeconds: p.prepSeconds,

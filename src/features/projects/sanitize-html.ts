@@ -1,5 +1,6 @@
 // Server-side allowlist sanitizer for the Tiptap task body. No DOM, no dependency.
 // Output only contains the tags and attributes below, with escaped attribute values.
+import { introIsHtml, introVisibleLength, isIntroColor, isIntroSize } from "./intro-format";
 
 const ALLOWED: Record<string, readonly string[]> = {
   p: [],
@@ -79,7 +80,13 @@ function openTag(name: string, attrSource: string): string | null {
   return `<${name}>`;
 }
 
+type Opener = (name: string, attrSource: string) => string | null;
+
 export function sanitizeTaskHtml(input: string): string {
+  return sanitizeWith(input, (n) => n in ALLOWED, openTag);
+}
+
+function sanitizeWith(input: string, allowed: (name: string) => boolean, open: Opener): string {
   const src = input.replace(/<!--[\s\S]*?(?:-->|$)/g, "").replace(DROP_WITH_CONTENT, "");
   const stack: string[] = [];
   let out = "";
@@ -89,14 +96,14 @@ export function sanitizeTaskHtml(input: string): string {
     last = m.index + m[0].length;
     const closing = m[1] === "/";
     const name = m[2].toLowerCase();
-    if (!(name in ALLOWED)) continue;
+    if (!allowed(name)) continue;
     if (closing) {
       const at = stack.lastIndexOf(name);
       if (at < 0) continue;
       while (stack.length > at) out += `</${stack.pop()}>`;
       continue;
     }
-    const html = openTag(name, m[3]);
+    const html = open(name, m[3]);
     if (html === null) continue;
     out += html;
     if (name === "a") stack.push("a");
@@ -105,6 +112,28 @@ export function sanitizeTaskHtml(input: string): string {
   out += escapeText(src.slice(last));
   while (stack.length) out += `</${stack.pop()}>`;
   return out;
+}
+
+const INTRO_TAGS = new Set(["p", "br", "strong", "b", "em", "i", "u", "span"]);
+
+function openIntroTag(name: string, attrSource: string): string | null {
+  if (name !== "span") return `<${name}>`;
+  const attrs = readAttrs(attrSource);
+  const color = isIntroColor(attrs["data-color"]) ? ` data-color="${attrs["data-color"]}"` : "";
+  const size = isIntroSize(attrs["data-size"]) ? ` data-size="${attrs["data-size"]}"` : "";
+  return `<span${color}${size}>`;
+}
+
+/** Intro paragraph: paragraphs, line breaks, bold, italic, underline, and spans with a listed color or size. Nothing else. */
+export function sanitizeIntroHtml(input: string): string {
+  return sanitizeWith(input, (n) => INTRO_TAGS.has(n), openIntroTag);
+}
+
+/** Intro as stored: markup is sanitized, plain text from older projects is kept as written, blank stays blank. */
+export function readIntro(value: string): string {
+  if (!introIsHtml(value)) return value.trim();
+  const clean = sanitizeIntroHtml(value).trim();
+  return introVisibleLength(clean) === 0 ? "" : clean;
 }
 
 /** Visible text of sanitized or raw HTML. An image counts as content. */

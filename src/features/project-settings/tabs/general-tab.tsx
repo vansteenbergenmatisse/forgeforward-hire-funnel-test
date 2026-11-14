@@ -9,13 +9,13 @@ import { Badge, Button } from "@/components/ui";
 import { ProjectDangerZone, ProjectStatusControl } from "@/features/project-lifecycle";
 import { cn } from "@/shared/cn";
 import { normalizeCalLink, validateCalLink, validateProjectName, validateReplyDays } from "../logic/general";
-import { INTRO_MAX, countText } from "../logic/limits";
 import { validateSlug } from "../logic/slug";
 import { renameSettingsSlug } from "../store";
 import type { SettingsApi } from "../use-settings";
 import { Card, TwoColumn } from "../ui/card";
 import { ConfirmDialog } from "../ui/confirm-dialog";
-import { DenseInput, DenseTextArea, SettingRow, Toggle } from "../ui/dense";
+import { DenseInput, SettingRow, Toggle } from "../ui/dense";
+import { IntroEditor } from "../ui/intro-editor";
 
 export function GeneralTab({ api }: { api: SettingsApi }) {
   const { project } = api.data;
@@ -56,14 +56,7 @@ export function GeneralTab({ api }: { api: SettingsApi }) {
                 onBlur={() => setNameTouched(true)}
               />
               <SlugField slug={api.slug} />
-              <DenseTextArea
-                label="Intro paragraph"
-                rows={4}
-                value={project.intro}
-                maxLength={INTRO_MAX}
-                onChange={(e) => setProject({ intro: e.target.value })}
-                hint={`Shows on the first screen of the application. ${countText(project.intro, INTRO_MAX)}.`}
-              />
+              <IntroEditor label="Intro paragraph" html={project.intro} onChange={(intro) => setProject({ intro })} />
               <div className="flex flex-col gap-2">
                 <DenseInput
                   label="Cal.com event link"

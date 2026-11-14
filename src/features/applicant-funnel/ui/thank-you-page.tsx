@@ -35,7 +35,7 @@ export function ThankYouPage({ project }: { project: FunnelProject }) {
   }, [flow, project.slug, router]);
 
   return (
-    <FunnelShell step={4}>
+    <FunnelShell step={4} hasTask={project.taskEnabled}>
       {!flow.startsWith("done:") ? (
         <FunnelSkeleton />
       ) : (

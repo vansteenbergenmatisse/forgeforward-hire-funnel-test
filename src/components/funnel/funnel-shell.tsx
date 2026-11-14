@@ -4,7 +4,7 @@ import { cn } from "@/shared/cn";
 import { ProgressBar } from "./progress-bar";
 
 /** Page frame for every funnel step: logo + progress on top, one column on phones, a white card from `md`. */
-export function FunnelShell({ step, children }: { step: number; children: ReactNode }) {
+export function FunnelShell({ step, hasTask = true, children }: { step: number; hasTask?: boolean; children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-ivory text-charcoal">
       <header className="shrink-0 px-5 pt-3.5 md:grid md:grid-cols-[minmax(max-content,1fr)_minmax(0,560px)_minmax(0,1fr)] md:items-center md:gap-6 md:border-b md:border-line md:bg-white md:px-10 md:py-[22px]">
@@ -12,7 +12,7 @@ export function FunnelShell({ step, children }: { step: number; children: ReactN
           <Logo height={22} />
         </div>
         <div className="mt-3.5 md:mt-0">
-          <ProgressBar current={step} />
+          <ProgressBar current={step} hasTask={hasTask} />
         </div>
       </header>
       <main className="flex flex-1 flex-col md:items-center md:px-10 md:pb-10 md:pt-12">

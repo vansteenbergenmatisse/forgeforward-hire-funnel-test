@@ -73,7 +73,7 @@ export function FunnelFlow({ project, tracking, sim, videoStub }: { project: Fun
   if (step === "closed") return <FunnelNotice title="Applications for this role are closed." />;
 
   return (
-    <FunnelShell step={progressIndex(step)}>
+    <FunnelShell step={progressIndex(step)} hasTask={project.taskEnabled}>
       {step === "loading" && <FunnelSkeleton />}
       {step === "inapp" && <InAppScreen onContinue={() => dispatch({ type: "continueAnyway" })} />}
       {step === "form" && (

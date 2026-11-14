@@ -25,7 +25,7 @@ export const settingsPatch = z.strictObject({
   name: name(60),
   slug: z.string().max(60),
   status: z.enum(["open", "closed"]),
-  intro: text(2000),
+  intro: text(20000),
   calLink: text(500),
   replyDays: z.number().int().min(1).max(30),
   handoffEnabled: z.boolean(),

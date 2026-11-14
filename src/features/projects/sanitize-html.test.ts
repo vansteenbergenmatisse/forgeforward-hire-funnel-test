@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { htmlPlainText, readTaskContent, sanitizeTaskHtml, textToHtml } from "./sanitize-html";
+import { htmlPlainText, readIntro, readTaskContent, sanitizeIntroHtml, sanitizeTaskHtml, textToHtml } from "./sanitize-html";
 
 describe("sanitizeTaskHtml", () => {
   it("keeps allowed markup", () => {
@@ -53,5 +53,30 @@ describe("task content helpers", () => {
     expect(htmlPlainText("<p>a&nbsp;b</p>")).toBe("a b");
     expect(htmlPlainText('<img src="https://x.com/a.png">')).toBe("image");
     expect(textToHtml("a & b\nc")).toBe("<p>a &amp; b</p><p>c</p>");
+  });
+});
+
+describe("sanitizeIntroHtml", () => {
+  it("keeps paragraphs, breaks, bold, italic, underline and listed color and size", () => {
+    const html = '<p>a<br><strong>b</strong> <em>c</em> <u>d</u></p><p></p><p><span data-color="signal" data-size="xl">e</span></p>';
+    expect(sanitizeIntroHtml(html)).toBe(html);
+  });
+  it("drops unlisted colors and sizes and any style or class", () => {
+    expect(sanitizeIntroHtml('<span data-color="red" data-size="9" style="color:red" class="x">a</span>')).toBe("<span>a</span>");
+  });
+  it("drops links, images, headings, scripts and handlers", () => {
+    expect(sanitizeIntroHtml('<h1>t</h1><a href="https://x.com">l</a><img src="https://x.com/a.png"><script>x()</script><p onclick="x()">p</p>')).toBe("tl<p>p</p>");
+  });
+});
+
+describe("readIntro", () => {
+  it("keeps plain text from older projects", () => {
+    expect(readIntro("  Book calls.\nPart time.  ")).toBe("Book calls.\nPart time.");
+  });
+  it("returns blank for markup with no visible text", () => {
+    expect(readIntro("<p></p><p><br></p>")).toBe("");
+  });
+  it("sanitizes markup", () => {
+    expect(readIntro('<p onclick="x()">Hi <script>1</script></p>')).toBe("<p>Hi </p>");
   });
 });

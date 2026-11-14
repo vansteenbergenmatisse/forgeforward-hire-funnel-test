@@ -1,4 +1,6 @@
-const ALLOWED_TAGS = new Set(["P", "H1", "H2", "H3", "STRONG", "B", "EM", "I", "UL", "OL", "LI", "A", "IMG", "BR"]);
+import { isIntroColor, isIntroSize } from "@/features/projects";
+
+const ALLOWED_TAGS = new Set(["P", "H1", "H2", "H3", "STRONG", "B", "EM", "I", "U", "SPAN", "UL", "OL", "LI", "A", "IMG", "BR"]);
 const SAFE_URL = /^(https?:|mailto:)/i;
 
 /** Images load over https only. Plain http can be rewritten on the way, and any host named in the task text sees the applicant's IP. */
@@ -40,6 +42,13 @@ function cleanNode(node: Node, doc: Document): Node | null {
     if (SAFE_URL.test(href)) out.setAttribute("href", href);
     out.setAttribute("target", "_blank");
     out.setAttribute("rel", "noopener noreferrer");
+  }
+  if (el.tagName === "SPAN") {
+    // Only the listed color and size names pass. No style attribute, no class.
+    const color = el.getAttribute("data-color");
+    const size = el.getAttribute("data-size");
+    if (isIntroColor(color)) out.setAttribute("data-color", color);
+    if (isIntroSize(size)) out.setAttribute("data-size", size);
   }
   if (el.tagName === "IMG") {
     const src = el.getAttribute("src") ?? "";

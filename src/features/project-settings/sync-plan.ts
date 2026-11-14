@@ -1,5 +1,5 @@
-import { normalizeCalLink, type ProjectBundle, type ProjectDef, type QuestionDef, type StageDef, type StageRole, type TemplateDef } from "@/features/projects";
-import { INTRO_MAX, THANK_YOU_MAX, VIDEO_PROMPT_MAX } from "./logic/limits";
+import { introFits, normalizeCalLink, type ProjectBundle, type ProjectDef, type QuestionDef, type StageDef, type StageRole, type TemplateDef } from "@/features/projects";
+import { THANK_YOU_MAX, VIDEO_PROMPT_MAX } from "./logic/limits";
 import { validateProjectName, validateReplyDays } from "./logic/general";
 import { validateQuestion, normalizeQuestion } from "./logic/questions";
 import { validateStageName } from "./logic/stages";
@@ -42,7 +42,7 @@ function projectOps(base: ProjectBundle, next: ProjectBundle): SyncOp[] {
   take("name", validateProjectName(n.name) === null);
   take("status");
   take("handoffEnabled");
-  take("intro", n.intro.length <= INTRO_MAX);
+  take("intro", introFits(n.intro));
   if (n.calLink !== b.calLink) {
     const link = n.calLink.trim() === "" ? "" : normalizeCalLink(n.calLink);
     if (link !== null) patch.calLink = link;

@@ -1,5 +1,5 @@
 import type { tables } from "@/platform/db";
-import { readTaskContent } from "../sanitize-html";
+import { readIntro, readTaskContent } from "../sanitize-html";
 import type { ProjectDef, QuestionDef, StageColor, StageDef, TemplateDef } from "../types";
 
 type Row<K extends "projects" | "stages" | "projectQuestions" | "messageTemplates"> = (typeof tables)[K]["$inferSelect"];
@@ -9,7 +9,7 @@ export function toDef(r: Row<"projects">): ProjectDef {
     slug: r.slug,
     name: r.name,
     status: r.status === "closed" ? "closed" : "open",
-    intro: r.intro,
+    intro: readIntro(r.intro),
     calLink: r.calLink,
     videoPrompt: r.videoPrompt,
     prepSeconds: r.prepSeconds,

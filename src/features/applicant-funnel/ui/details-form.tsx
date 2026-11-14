@@ -7,6 +7,7 @@ import { MainButton, StepBody, StepFooter } from "@/components/funnel";
 import { activeQuestions, questionKey, errorSummary, type FormValues } from "../lib/form-validation";
 import { CONSENT_TEXT } from "../schemas";
 import type { FunnelApi, FunnelProject, FunnelSession } from "../types";
+import { IntroBody } from "./intro-body";
 import { PhoneField } from "./phone-field";
 import { QuestionField } from "./question-field";
 import { TimeZoneSelect } from "./timezone-select";
@@ -157,7 +158,7 @@ function Intro({ project }: { project: FunnelProject }) {
       <div>
         <p className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-signal">Forge Forward is hiring</p>
         <h1 className="mt-2 text-[40px] leading-[0.98] md:text-[52px]">{project.name}</h1>
-        {project.intro && <p className="mt-3.5 text-base leading-normal text-muted">{project.intro}</p>}
+        {project.intro && <IntroBody body={project.intro} />}
         <p className="mt-3.5 flex items-center gap-2 text-[14.5px] font-bold">
           <Clock className="size-4 shrink-0" aria-hidden />
           Takes about 5 minutes. You need a camera or a mic.

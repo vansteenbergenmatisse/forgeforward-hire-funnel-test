@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, tables } from "@/platform/db";
 import { normalizeCalLink } from "../cal-link";
-import { htmlPlainText, readTaskContent, sanitizeTaskHtml } from "../sanitize-html";
+import { htmlPlainText, readIntro, readTaskContent, sanitizeTaskHtml } from "../sanitize-html";
 import { validateSlug } from "../slug";
 import type { ProjectDef } from "../types";
 import { projectBySlug } from "./bundles";
@@ -33,7 +33,7 @@ export async function updateSettings(slug: string, patch: SettingsPatch): Promis
   }
   if (patch.name !== undefined) set.name = patch.name;
   if (patch.status !== undefined) set.status = patch.status;
-  if (patch.intro !== undefined) set.intro = patch.intro.trim();
+  if (patch.intro !== undefined) set.intro = readIntro(patch.intro);
   if (patch.calLink !== undefined) {
     const raw = patch.calLink.trim();
     const link = raw === "" ? "" : normalizeCalLink(raw);

@@ -24,3 +24,12 @@ describe("isSafeImageSrc", () => {
     expect(isSafeImageSrc("/relative.png")).toBe(false);
   });
 });
+
+describe("sanitizeTaskHtml in the browser", () => {
+  it.skipIf(typeof DOMParser === "undefined")("keeps listed span values only", async () => {
+    const { sanitizeTaskHtml } = await import("./safe-html");
+    expect(sanitizeTaskHtml('<p><u>a</u><span data-color="signal" data-size="xl" style="color:red">b</span><span data-color="x">c</span></p>')).toBe(
+      '<p><u>a</u><span data-color="signal" data-size="xl">b</span><span>c</span></p>',
+    );
+  });
+});

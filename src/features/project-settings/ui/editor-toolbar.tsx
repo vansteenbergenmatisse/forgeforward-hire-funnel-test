@@ -8,7 +8,7 @@ import { cn } from "@/shared/cn";
 
 export type UrlMode = "link" | "image" | null;
 
-function ToolButton({ label, pressed, onClick, children }: { label: string; pressed?: boolean; onClick: () => void; children: ReactNode }) {
+export function ToolButton({ label, pressed, onClick, children }: { label: string; pressed?: boolean; onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
