@@ -114,9 +114,10 @@ function sanitizeWith(input: string, allowed: (name: string) => boolean, open: O
   return out;
 }
 
-const INTRO_TAGS = new Set(["p", "br", "strong", "b", "em", "i", "u", "span"]);
+const INTRO_TAGS = new Set(["p", "br", "strong", "b", "em", "i", "u", "span", "h1", "h2", "a"]);
 
 function openIntroTag(name: string, attrSource: string): string | null {
+  if (name === "a") return openTag(name, attrSource);
   if (name !== "span") return `<${name}>`;
   const attrs = readAttrs(attrSource);
   const color = isIntroColor(attrs["data-color"]) ? ` data-color="${attrs["data-color"]}"` : "";
@@ -124,7 +125,7 @@ function openIntroTag(name: string, attrSource: string): string | null {
   return `<span${color}${size}>`;
 }
 
-/** Intro paragraph: paragraphs, line breaks, bold, italic, underline, and spans with a listed color or size. Nothing else. */
+/** Intro: paragraphs, titles (h1, h2), links, line breaks, bold, italic, underline, and spans with a listed color or size. Nothing else. */
 export function sanitizeIntroHtml(input: string): string {
   return sanitizeWith(input, (n) => INTRO_TAGS.has(n), openIntroTag);
 }

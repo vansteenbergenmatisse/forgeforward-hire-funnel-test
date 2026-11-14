@@ -64,8 +64,10 @@ describe("sanitizeIntroHtml", () => {
   it("drops unlisted colors and sizes and any style or class", () => {
     expect(sanitizeIntroHtml('<span data-color="red" data-size="9" style="color:red" class="x">a</span>')).toBe("<span>a</span>");
   });
-  it("drops links, images, headings, scripts and handlers", () => {
-    expect(sanitizeIntroHtml('<h1>t</h1><a href="https://x.com">l</a><img src="https://x.com/a.png"><script>x()</script><p onclick="x()">p</p>')).toBe("tl<p>p</p>");
+  it("keeps titles and safe links, drops images, h3, scripts, handlers and javascript: links", () => {
+    expect(sanitizeIntroHtml('<h1>t</h1><h2>u</h2><h3>v</h3><a href="https://x.com">l</a><a href="javascript:x()">j</a><img src="https://x.com/a.png"><script>x()</script><p onclick="x()">p</p>')).toBe(
+      '<h1>t</h1><h2>u</h2>v<a href="https://x.com" target="_blank" rel="noopener noreferrer">l</a><a>j</a><p>p</p>',
+    );
   });
 });
 

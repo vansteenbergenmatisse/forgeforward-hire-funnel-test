@@ -1,10 +1,10 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { EditorContent, Extension, Mark, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Plugin } from "@tiptap/pm/state";
-import { Bold, Italic, Underline } from "lucide-react";
+import { Bold, Heading1, Heading2, Italic, Link2, Underline } from "lucide-react";
 import {
   INTRO_COLORS,
   INTRO_PROSE,
@@ -18,7 +18,9 @@ import {
   type IntroSize,
 } from "@/features/projects";
 import { cn } from "@/shared/cn";
+import { LINK_PROTOCOLS, normalizeUrl } from "../logic/url";
 import { ToolButton } from "./editor-toolbar";
+import { UrlBar } from "./url-bar";
 
 const SIZE_LABEL: Record<IntroSize, string> = { sm: "Small", lg: "Large", xl: "Extra large", huge: "Huge" };
 const COLOR_LABEL: Record<IntroColor, string> = {
@@ -75,7 +77,7 @@ const TextLimit = Extension.create({
 function introExtensions() {
   return [
     StarterKit.configure({
-      heading: false,
+      heading: { levels: [1, 2] },
       blockquote: false,
       code: false,
       codeBlock: false,
@@ -85,7 +87,7 @@ function introExtensions() {
       orderedList: false,
       listItem: false,
       listKeymap: false,
-      link: false,
+      link: { openOnClick: false, autolink: false, protocols: ["mailto", "tel"], HTMLAttributes: { target: "_blank", rel: "noopener noreferrer nofollow" } },
       underline: {},
     }),
     IntroStyle,
@@ -101,17 +103,24 @@ function setStyle(editor: Editor, patch: { color?: IntroColor | null; size?: Int
   else chain.setMark("introStyle", next).run();
 }
 
-function IntroToolbar({ editor }: { editor: Editor }) {
+function IntroToolbar({ editor, linkOpen, onLink }: { editor: Editor; linkOpen: boolean; onLink: () => void }) {
   const s = useEditorState({
     editor,
     selector: ({ editor: e }) => {
       const a = e.getAttributes("introStyle") as { color?: IntroColor | null; size?: IntroSize | null };
-      return { bold: e.isActive("bold"), italic: e.isActive("italic"), underline: e.isActive("underline"), color: a.color ?? null, size: a.size ?? null };
+      return { h1: e.isActive("heading", { level: 1 }), h2: e.isActive("heading", { level: 2 }), link: e.isActive("link"), bold: e.isActive("bold"), italic: e.isActive("italic"), underline: e.isActive("underline"), color: a.color ?? null, size: a.size ?? null };
     },
   });
   const chain = () => editor.chain().focus();
   return (
     <div role="toolbar" aria-label="Text formatting" className="flex flex-wrap items-center gap-x-1 gap-y-1.5 border-b border-line bg-white px-2 py-1.5">
+      <ToolButton label="Title (large)" pressed={s.h1} onClick={() => chain().toggleHeading({ level: 1 }).run()}>
+        <Heading1 className="size-[18px]" aria-hidden />
+      </ToolButton>
+      <ToolButton label="Subtitle" pressed={s.h2} onClick={() => chain().toggleHeading({ level: 2 }).run()}>
+        <Heading2 className="size-[18px]" aria-hidden />
+      </ToolButton>
+      <span className="mx-1 h-5 w-px bg-line-strong" aria-hidden />
       <ToolButton label="Bold" pressed={s.bold} onClick={() => chain().toggleBold().run()}>
         <Bold className="size-[18px]" aria-hidden />
       </ToolButton>
@@ -120,6 +129,9 @@ function IntroToolbar({ editor }: { editor: Editor }) {
       </ToolButton>
       <ToolButton label="Underline" pressed={s.underline} onClick={() => chain().toggleUnderline().run()}>
         <Underline className="size-[18px]" aria-hidden />
+      </ToolButton>
+      <ToolButton label="Link" pressed={s.link || linkOpen} onClick={onLink}>
+        <Link2 className="size-[18px]" aria-hidden />
       </ToolButton>
       <span className="mx-1 h-5 w-px bg-line-strong" aria-hidden />
       <select
@@ -170,6 +182,7 @@ function IntroToolbar({ editor }: { editor: Editor }) {
  */
 export function IntroEditor({ label, html, onChange }: { label: string; html: string; onChange: (html: string) => void }) {
   const labelId = useId();
+  const [linkOpen, setLinkOpen] = useState(false);
   const editor = useEditor({
     extensions: introExtensions(),
     content: introToHtml(html),
@@ -186,14 +199,40 @@ export function IntroEditor({ label, html, onChange }: { label: string; html: st
       </p>
       {editor ? (
         <div className="overflow-hidden rounded-xl border border-line-strong bg-white focus-within:border-charcoal">
-          <IntroToolbar editor={editor} />
+          <IntroToolbar editor={editor} linkOpen={linkOpen} onLink={() => setLinkOpen((v) => !v)} />
+          {linkOpen && (
+            <UrlBar
+              kind="link"
+              initialUrl={(editor.getAttributes("link").href as string | undefined) ?? ""}
+              canRemove={editor.isActive("link")}
+              validate={(raw) => (normalizeUrl(raw, LINK_PROTOCOLS) ? null : "Use a full link, like https://example.com.")}
+              onApply={(raw) => {
+                const href = normalizeUrl(raw, LINK_PROTOCOLS);
+                if (!href) return;
+                if (editor.state.selection.empty && !editor.isActive("link")) {
+                  editor.chain().focus().insertContent({ type: "text", text: raw.trim(), marks: [{ type: "link", attrs: { href } }] }).run();
+                } else {
+                  editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
+                }
+                setLinkOpen(false);
+              }}
+              onRemove={() => {
+                editor.chain().focus().extendMarkRange("link").unsetLink().run();
+                setLinkOpen(false);
+              }}
+              onCancel={() => {
+                setLinkOpen(false);
+                editor.commands.focus();
+              }}
+            />
+          )}
           <EditorContent editor={editor} />
         </div>
       ) : (
         <div className="h-44 animate-pulse rounded-xl border border-line-strong bg-sand" aria-busy="true" aria-label="Loading editor" />
       )}
       <p className="text-[13px] leading-snug text-subtle">
-        Shows on the first screen of the application. Enter starts a new paragraph. Shift+Enter breaks the line. {used} of {INTRO_TEXT_MAX} characters.
+        Shows on the first screen of the application. Select text, then use the toolbar. Enter starts a new paragraph. Shift+Enter breaks the line. {used} of {INTRO_TEXT_MAX} characters.
       </p>
     </div>
   );

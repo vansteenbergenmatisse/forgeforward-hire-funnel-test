@@ -19,6 +19,8 @@ export const isIntroSize = (v: unknown): v is IntroSize => typeof v === "string"
 /** Typography for the intro in the editor and on the first funnel screen. Class names are written out so Tailwind sees them. */
 export const INTRO_PROSE = [
   "[&_p]:min-h-[1.5em] [&_p+p]:mt-2 [&_strong]:font-extrabold [&_em]:italic [&_u]:underline",
+  "[&_h1]:mt-4 [&_h1]:mb-1 [&_h1]:text-[28px] [&_h1]:leading-none [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-[21px] [&_h2]:leading-none [&_:first-child]:mt-0",
+  "[&_a]:font-semibold [&_a]:text-signal-deep [&_a]:underline",
   "[&_[data-size=sm]]:text-sm [&_[data-size=lg]]:text-xl [&_[data-size=xl]]:text-[26px] [&_[data-size=huge]]:text-[34px]",
   "[&_[data-size=lg]]:leading-snug [&_[data-size=xl]]:leading-tight [&_[data-size=huge]]:leading-tight",
   "[&_[data-color=signal]]:text-signal [&_[data-color=signal-deep]]:text-signal-deep [&_[data-color=charcoal]]:text-charcoal [&_[data-color=muted]]:text-muted",
