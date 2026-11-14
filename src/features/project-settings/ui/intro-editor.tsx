@@ -188,7 +188,16 @@ export function IntroEditor({ label, html, onChange }: { label: string; html: st
     content: introToHtml(html),
     immediatelyRender: false,
     onUpdate: ({ editor: e }) => onChange(e.isEmpty ? "" : e.getHTML()),
-    editorProps: { attributes: { role: "textbox", "aria-multiline": "true", "aria-labelledby": labelId, class: cn("min-h-28 px-4 py-3 text-[15px] leading-normal text-muted focus:outline-none", INTRO_PROSE) } },
+    editorProps: {
+      // Cmd or Ctrl plus click opens a link in a new tab. A plain click only places the cursor, so the link stays editable.
+      handleClick: (_view, _pos, event) => {
+        const a = event.target instanceof Element ? event.target.closest("a[href]") : null;
+        if (!a || !(event.metaKey || event.ctrlKey)) return false;
+        window.open(a.getAttribute("href") ?? "", "_blank", "noopener,noreferrer");
+        return true;
+      },
+      attributes: { role: "textbox", "aria-multiline": "true", "aria-labelledby": labelId, class: cn("min-h-28 px-4 py-3 text-[15px] leading-normal text-muted focus:outline-none", INTRO_PROSE) },
+    },
   });
   const used = editor ? editor.getText().length : introVisibleLength(html);
 
@@ -232,7 +241,7 @@ export function IntroEditor({ label, html, onChange }: { label: string; html: st
         <div className="h-44 animate-pulse rounded-xl border border-line-strong bg-sand" aria-busy="true" aria-label="Loading editor" />
       )}
       <p className="text-[13px] leading-snug text-subtle">
-        Shows on the first screen of the application. Select text, then use the toolbar. Enter starts a new paragraph. Shift+Enter breaks the line. {used} of {INTRO_TEXT_MAX} characters.
+        Shows on the first screen of the application. Select text, then use the toolbar. Enter starts a new paragraph. Shift+Enter breaks the line. Cmd or Ctrl plus click opens a link in a new tab. {used} of {INTRO_TEXT_MAX} characters.
       </p>
     </div>
   );
